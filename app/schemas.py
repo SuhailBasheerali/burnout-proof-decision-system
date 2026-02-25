@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List
 
 
@@ -17,6 +17,13 @@ class DecisionOption(BaseModel):
     title: str
     growth_criteria: List[Criterion]
     sustainability_criteria: List[Criterion]
+
+    @field_validator("growth_criteria", "sustainability_criteria")
+    @classmethod
+    def validate_non_empty(cls, value):
+        if len(value) == 0:
+            raise ValueError("Each option must include at least one criterion in both growth and sustainability.")
+        return value
 
 
 # ----------------------------
