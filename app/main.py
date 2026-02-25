@@ -71,10 +71,10 @@ def detect_close_competition(sorted_options, threshold=5):
 @app.post("/decision/compare", response_model=CompareResponse)
 def compare(request: CompareRequest):
 
-    if len(request.options) < 2:
+    if len(request.options) == 0:
         raise HTTPException(
             status_code=400,
-            detail="At least two options required for comparison."
+            detail="At least one option is required."
         )
 
     evaluations = []
@@ -108,12 +108,37 @@ def compare(request: CompareRequest):
         reverse=True
     )
 
+    # ----------------------------
+    # Single Option Structural Classification
+    # ----------------------------
+    if len(sorted_options) == 1:
+        single = sorted_options[0]
+
+        if single["tension_severity"] in ["HIGH", "CRITICAL"]:
+            risk_awareness = "STRUCTURAL_IMBALANCE_DETECTED"
+        elif single["zone"] == "AVOID":
+            risk_awareness = "LOW_GROWTH_LOW_SUSTAINABILITY"
+        else:
+            risk_awareness = "STRUCTURALLY_FEASIBLE"
+
+        return {
+            "evaluations": sorted_options,
+            "recommended_option": single["title"],
+            "decision_status": "SINGLE_OPTION_CLASSIFIED",
+            "recommendation_reason": "Single option evaluated and structurally classified.",
+            "risk_awareness": risk_awareness
+        }
+
+    # ----------------------------
+    # Multi-Option Logic
+    # ----------------------------
     if detect_close_competition(sorted_options):
         return {
             "evaluations": sorted_options,
             "recommended_option": "NO_CLEAR_WINNER",
             "decision_status": "CLOSE_COMPETITION",
-            "recommendation_reason": "Top options have very similar composite scores."
+            "recommendation_reason": "Top options have very similar composite scores.",
+            "risk_awareness": None
         }
 
     winner = sorted_options[0]
@@ -122,5 +147,6 @@ def compare(request: CompareRequest):
         "evaluations": sorted_options,
         "recommended_option": winner["title"],
         "decision_status": "CLEAR_WINNER",
-        "recommendation_reason": f"Highest composite score ({winner['composite_score']})."
+        "recommendation_reason": f"Highest composite score ({winner['composite_score']}).",
+        "risk_awareness": None
     }
