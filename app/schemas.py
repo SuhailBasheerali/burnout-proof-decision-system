@@ -41,10 +41,11 @@ class OptionEvaluation(BaseModel):
 
 
 # ----------------------------
-# Multi-Option Response Model
+# Multi and single-Option Response Model
 # ----------------------------
 class CompareResponse(BaseModel):
     evaluations: List[OptionEvaluation]
     recommended_option: str
     decision_status: str
     recommendation_reason: str
+    risk_awareness: str | None = None
