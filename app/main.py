@@ -56,3 +56,10 @@ def evaluate_decision(decision: DecisionCreate, db: Session = Depends(get_db)):
     db.refresh(db_decision)
 
     return db_decision
+
+@app.get("/decision/{decision_id}", response_model=DecisionResponse)
+def get_decision(decision_id: int, db: Session = Depends(get_db)):
+    decision = db.query(Decision).filter(Decision.id == decision_id).first()
+    if not decision:
+        raise HTTPException(status_code=404, detail="Decision not found")
+    return decision
