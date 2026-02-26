@@ -45,6 +45,10 @@ class OptionEvaluation(BaseModel):
     zone: str
     zone_reason: str
     composite_score: float
+    triggered_messages: List[str]
+    risk_level: str
+    sensitivity_range: float
+    stability_level: str 
 
 
 # ----------------------------
