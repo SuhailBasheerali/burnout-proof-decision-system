@@ -14,7 +14,7 @@ class Criterion(BaseModel):
 # Decision Option Input Model
 # ----------------------------
 class DecisionOption(BaseModel):
-    title: str
+    title: str = Field(..., min_length=1, max_length=100)
     growth_criteria: List[Criterion]
     sustainability_criteria: List[Criterion]
 
@@ -22,7 +22,9 @@ class DecisionOption(BaseModel):
     @classmethod
     def validate_non_empty(cls, value):
         if len(value) == 0:
-            raise ValueError("Each option must include at least one criterion in both growth and sustainability.")
+            raise ValueError(
+                "Each option must include at least one criterion in both growth and sustainability."
+            )
         return value
 
 
@@ -30,7 +32,7 @@ class DecisionOption(BaseModel):
 # Multi-Option Request Model
 # ----------------------------
 class CompareRequest(BaseModel):
-    options: List[DecisionOption]
+    options: List[DecisionOption] = Field(..., min_length=1, max_length=10)
 
 
 # ----------------------------
@@ -45,18 +47,17 @@ class OptionEvaluation(BaseModel):
     zone: str
     zone_reason: str
     composite_score: float
-    triggered_messages: List[str]
     risk_level: str
+    triggered_messages: List[str]
     sensitivity_range: float
-    stability_level: str 
+    stability_level: str
 
 
 # ----------------------------
-# Multi and single-Option Response Model
+# Multi & Single Option Response
 # ----------------------------
 class CompareResponse(BaseModel):
     evaluations: List[OptionEvaluation]
     recommended_option: str
     decision_status: str
     recommendation_reason: str
-    risk_awareness: str | None = None
