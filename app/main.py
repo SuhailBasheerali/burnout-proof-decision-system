@@ -59,7 +59,7 @@ def compare(request: CompareRequest):
         comp = composite_score(growth, sustainability)
 
         # 5️⃣ Structural Risk
-        risk = classify_risk(zone, tension_severity, sustainability)
+        risk = classify_risk(zone, tension_severity, growth, sustainability)
 
         # 6️⃣ Triggered Structural Messages
         triggers = generate_triggers(
