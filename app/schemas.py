@@ -6,7 +6,7 @@ from typing import List
 # Criterion Model
 # ----------------------------
 class Criterion(BaseModel):
-    weight: int = Field(..., ge=0, le=10)
+    weight: float = Field(..., ge=0, le=10)
     impact: int = Field(..., ge=0, le=10)
 
 
