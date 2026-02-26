@@ -27,20 +27,9 @@ def root():
 def compare(request: CompareRequest):
 
     # --------------------------------------------------
-    # Defensive Constraints
+    # Defensive Constraint: Duplicate Titles Only
+    # (Length constraints handled by schema)
     # --------------------------------------------------
-    if len(request.options) == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="At least one option is required."
-        )
-
-    if len(request.options) > 10:
-        raise HTTPException(
-            status_code=400,
-            detail="Maximum 10 options allowed."
-        )
-
     titles = [o.title for o in request.options]
     if len(set(titles)) != len(titles):
         raise HTTPException(
