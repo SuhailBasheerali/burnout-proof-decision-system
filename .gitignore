@@ -4,3 +4,27 @@ __pycache__/
 *.pyc
 .env
 *.db
+
+# IDE and Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Development
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
