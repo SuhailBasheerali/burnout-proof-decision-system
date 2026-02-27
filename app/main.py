@@ -70,7 +70,7 @@ def compare(request: CompareRequest):
             zone
         )
 
-        # 7️⃣ Sensitivity Analysis (±10% weight perturbation)
+        # 7️⃣ Sensitivity Analysis (±20% weight perturbation)
         growth_sens = perform_sensitivity_analysis(
             option.growth_criteria,
             normalize_score
