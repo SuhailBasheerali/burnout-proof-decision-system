@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from app.schemas import CompareRequest, CompareResponse
+from app.schemas import CompareRequest, CompareResponse, OptionEvaluation
 
 from app.engine.evaluator import normalize_score, composite_score
 from app.engine.classifier import (
@@ -85,27 +85,29 @@ def compare(request: CompareRequest):
         stability = classify_stability(sensitivity_range)
 
         # 8️⃣ Collect Evaluation Result
-        evaluations.append({
-            "title": option.title,
-            "growth_score": growth,
-            "sustainability_score": sustainability,
-            "tension_index": tension,
-            "tension_severity": tension_severity,
-            "zone": zone,
-            "zone_reason": zone_reason,
-            "composite_score": comp,
-            "risk_level": risk,
-            "triggered_messages": triggers,
-            "sensitivity_range": sensitivity_range,
-            "stability_level": stability
-        })
+        evaluations.append(
+            OptionEvaluation(
+                title=option.title,
+                growth_score=growth,
+                sustainability_score=sustainability,
+                tension_index=tension,
+                tension_severity=tension_severity,
+                zone=zone,
+                zone_reason=zone_reason,
+                composite_score=comp,
+                risk_level=risk,
+                triggered_messages=triggers,
+                sensitivity_range=sensitivity_range,
+                stability_level=stability
+            )
+        )
 
     # --------------------------------------------------
     # Sort by Composite Score (Descending)
     # --------------------------------------------------
     sorted_options = sorted(
         evaluations,
-        key=lambda x: x["composite_score"],
+        key=lambda x: x.composite_score,
         reverse=True
     )
 
@@ -115,32 +117,29 @@ def compare(request: CompareRequest):
     if len(sorted_options) == 1:
         single = sorted_options[0]
 
-        return {
-            "evaluations": sorted_options,
-            "recommended_option": single["title"],
-            "decision_status": "SINGLE_OPTION_CLASSIFIED",
-            "recommendation_reason":
-                "Single option structurally evaluated and classified."
-        }
+        return CompareResponse(
+            evaluations=sorted_options,
+            recommended_option=single.title,
+            decision_status="SINGLE_OPTION_CLASSIFIED",
+            recommendation_reason="Single option structurally evaluated and classified."
+        )
 
     # --------------------------------------------------
     # Multi-Option Mode
     # --------------------------------------------------
     if detect_close_competition(sorted_options):
-        return {
-            "evaluations": sorted_options,
-            "recommended_option": "NO_CLEAR_WINNER",
-            "decision_status": "CLOSE_COMPETITION",
-            "recommendation_reason":
-                "Top options have very similar composite scores."
-        }
+        return CompareResponse(
+            evaluations=sorted_options,
+            recommended_option="NO_CLEAR_WINNER",
+            decision_status="CLOSE_COMPETITION",
+            recommendation_reason="Top options have very similar composite scores."
+        )
 
     winner = sorted_options[0]
 
-    return {
-        "evaluations": sorted_options,
-        "recommended_option": winner["title"],
-        "decision_status": "CLEAR_WINNER",
-        "recommendation_reason":
-            f"Highest composite score ({winner['composite_score']})."
-    }
+    return CompareResponse(
+        evaluations=sorted_options,
+        recommended_option=winner.title,
+        decision_status="CLEAR_WINNER",
+        recommendation_reason=f"Highest composite score ({winner.composite_score})."
+    )
