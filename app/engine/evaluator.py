@@ -23,6 +23,14 @@ def composite_score(growth, sustainability):
     
     This ensures growth-dominant imbalances are penalized 3x more severely,
     addressing the critical burnout risk of high growth + low sustainability.
+    
+    INTERPRETATION NOTE:
+    This formula prioritizes BALANCE. A 50/50 option scores higher than 90/10 because:
+    - Perfect balance at 50: Composite = 50 (reliable)
+    - High imbalance (90/10): Composite ≈ 25 (risky)
+    
+    This is INTENTIONAL - the system avoids high-risk, high-reward patterns.
+    Use sensitivity_range/stability_level to understand confidence in any decision.
     """
     base = (growth + sustainability) / 2
     

@@ -25,32 +25,48 @@ def classify_tension(tension):
 
 def classify_risk(zone, tension_severity, growth, sustainability):
     """
-    Enhanced risk classification with growth deficit detection.
+    Enhanced risk classification with burnout ratio detection and growth deficit handling.
     
     Priority hierarchy:
     1. Structural rejection (AVOID zone)
-    2. Severe burnout imbalance (CRITICAL tension from high growth, low sustainability)
+    2. Severe burnout imbalance (CRITICAL tension OR high ratio from growth > sustainability)
     3. Sustainability deficit (explicit low sustainability)
     4. Growth stagnation deficit (implicit growth risk)
-    5. Default stable classification
+    5. Severe stagnation (low sustainability with high sustainability-dominant tension)
+    6. Default stable classification
     
-    This hierarchy appropriately penalizes both extreme burnout AND stagnation risks.
+    This hierarchy catches both extreme imbalances (CRITICAL) and sneaky imbalances
+    (HIGH tension with dangerous ratios like 80 growth, 30 sustainability).
     """
     # Highest priority: structural rejection
     if zone == "AVOID":
-        return "LOW_STRUCTURAL_VALUE"
+        return "STRUCTURALLY_UNSALVAGEABLE"
 
-    # Critical burnout detection: high growth with critically low sustainability
+    # BURNOUT DETECTION - Two pathways:
+    # Pathway 1: CRITICAL tension with growth dominance
     if tension_severity == "CRITICAL" and growth > sustainability:
         return "SEVERE_BURNOUT_RISK"
+    
+    # Pathway 2: HIGH tension with dangerous growth ratio (>2x sustainability)
+    # Catches: Growth 80, Sustainability 30 (ratio 2.67x, tension 50=HIGH)
+    if tension_severity == "HIGH" and growth > sustainability:
+        ratio = growth / max(sustainability, 1)  # Avoid division by zero
+        if ratio >= 2.0:  # Growth is 2x or more than sustainability
+            return "SEVERE_BURNOUT_RISK"
 
-    # General severe imbalance
+    # General severe imbalance (non-burnout orientation)
     if tension_severity == "CRITICAL":
         return "SEVERE_IMBALANCE"
 
     # Explicit sustainability deficit
     if sustainability < 40:
         return "SUSTAINABILITY_DEFICIT"
+    
+    # Severe stagnation: High tension with sustainability dominance
+    if tension_severity == "HIGH" and sustainability > growth:
+        ratio = sustainability / max(growth, 1)
+        if ratio >= 1.5:  # Sustainability is 1.5x+ more than growth
+            return "SEVERE_STAGNATION_RISK"
     
     # Growth deficit risk: low growth indicates stagnation
     # (especially problematic in LIGHT_RECOVERY zone which suggests low growth)
