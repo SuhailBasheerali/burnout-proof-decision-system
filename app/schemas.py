@@ -98,8 +98,8 @@ class ReflectionRequest(BaseModel):
 
 
 class ReflectionResponse(BaseModel):
-    """Absolem's reflective advice with burnout prevention focus."""
-    advice: str
+    """Absolem's reflective advice with decision engine insight comparison."""
+    decision_engine: dict  # Contains: recommendation, scores, reasoning
+    absolem_perspective: dict  # Contains: advice, type, focus
     action_plan: List[str]
-    comparison_insight: str
     source: str

@@ -19,16 +19,25 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Default Absolem wisdom - used as fallback
+# Default Absolem wisdom - used as fallback (matches new response structure)
 ABSOLEM_FALLBACK_WISDOM = {
-    "advice": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
+    "decision_engine": {
+        "recommendation": "Unable to determine - API unavailable",
+        "growth_score": None,
+        "sustainability_score": None,
+        "reasoning": "Algorithmic analysis unavailable; rely on Absolem's wisdom"
+    },
+    "absolem_perspective": {
+        "advice": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
+        "type": "fallback_complementary",
+        "focus": "Burnout prevention through wisdom rather than metrics"
+    },
     "action_plan": [
         "Identify which option allows you to rest without guilt",
         "Build buffer time into your chosen path—urgency breeds burnout",
         "Review your choice weekly; adjust when the path no longer feels sustainable"
     ],
-    "comparison_insight": "The most sustainable option is rarely the most prestigious. Trust your energy, not the noise.",
-    "source": "Absolem's Default Wisdom"
+    "source": "Absolem's Fallback Wisdom"
 }
 
 # Cache configuration
@@ -98,7 +107,7 @@ class AbsolemReflector:
             logger.warning(f"Cache write failed: {e}")
     
     def _create_prompt(self, options: list, best_option: str, analysis_data: dict) -> str:
-        """Create Absolem-themed prompt."""
+        """Create Absolem-themed prompt with decision engine context."""
         # Handle both dict and Pydantic model inputs
         options_names = []
         for opt in options:
@@ -113,15 +122,21 @@ class AbsolemReflector:
                 options_names.append(opt['name'])
         
         options_str = ", ".join(options_names) if options_names else "unknown options"
-        return f"""You are Absolem, a wise guardian from the Caterpillar Kingdom. Your role is to provide 
-brief, cryptic yet helpful advice to prevent burnout in academic decisions.
+        return f"""You are Absolem, a wise guardian from the Caterpillar Kingdom. Your role is to provide a COMPLEMENTARY perspective on student decisions.
 
-The student has {len(options)} options: {options_str}
-The analysis suggests '{best_option}' is strongest.
-Key metrics: Growth score {analysis_data.get('growth_score', '?')}, Sustainability: {analysis_data.get('sustainability_score', '?')}
+CONTEXT:
+- Student has {len(options)} options: {options_str}
+- Decision Engine analysis recommends: '{best_option}'
+- Metrics: Growth {analysis_data.get('growth_score', '?')}/100, Sustainability {analysis_data.get('sustainability_score', '?')}/100
 
-In 2-3 sentences, advise which option prevents burnout best and why. Be cryptic but insightful. 
-Keep it short. Focus on SUSTAINABILITY and BURNOUT PREVENTION."""
+YOUR ROLE:
+You are NOT replacing the analysis. Instead, provide a COMPLEMENTARY wisdom:
+1. Acknowledge what the analysis shows
+2. Add a BURNOUT PREVENTION angle the algorithms miss
+3. Suggest if there's a different priority (sustainability over pure growth)
+4. Be cryptic but helpful
+
+In 2-3 sentences, give your unique perspective on preventing burnout. Focus on what the metrics MIGHT NOT capture."""
     
     def get_reflection(self, options: list, comparison_result: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -207,20 +222,31 @@ Keep it short. Focus on SUSTAINABILITY and BURNOUT PREVENTION."""
                 )
                 
                 wisdom_text = response.text.strip()
+                
+                # Build response with both Decision Engine insight and Absolem's perspective
                 result = {
-                    "advice": wisdom_text,
+                    "decision_engine": {
+                        "recommendation": best_option,
+                        "growth_score": analysis_data.get("growth_score"),
+                        "sustainability_score": analysis_data.get("sustainability_score"),
+                        "reasoning": f"Strong composite score balancing growth ({analysis_data.get('growth_score', '?')}) and sustainability ({analysis_data.get('sustainability_score', '?')})"
+                    },
+                    "absolem_perspective": {
+                        "advice": wisdom_text,
+                        "type": "complementary",
+                        "focus": "Burnout prevention and sustainability angles the algorithms might miss"
+                    },
                     "action_plan": [
-                        "Reflect on this wisdom—does it resonate with your energy?",
+                        "Reflect on both the analytical insight and Absolem's wisdom",
                         f"If choosing '{best_option}', ensure you have rest periods built in",
                         "Monitor your burnout signals weekly; adjust course if needed"
                     ],
-                    "comparison_insight": f"In Absolem's view, '{best_option}' offers the most sustainable path forward.",
-                    "source": "Absolem (via Gemini)"
+                    "source": "Decision Engine + Absolem (via Gemini)"
                 }
                 
                 # Cache successful response
                 self._save_to_cache(cache_key, result)
-                logger.info("✨ Gemini wisdom generated and cached")
+                logger.info("✨ Decision insight + Absolem wisdom generated and cached")
                 return result
                 
             except Exception as e:

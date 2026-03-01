@@ -499,7 +499,7 @@ def render_phase_3():
         <h1> Decision Analysis </h1>
     </div>
     """, unsafe_allow_html=True)
-    
+
     
     # ═══════════════════════════════════════════════════════════════════════════
     # RECOMMENDATION CARD - HANDLES ALL SCENARIOS
@@ -775,31 +775,56 @@ def render_phase_3():
         # Display the wisdom
         reflection = st.session_state.ai_reflection
         
+        # DECISION ENGINE INSIGHT
         with st.container(border=True):
-            st.markdown("#### 💭 The Advice")
-            st.markdown(f"> *{reflection['advice']}*")
+            st.markdown("#### 🧮 Decision Engine Analysis")
+            
+            de = reflection.get('decision_engine', {})
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("📌 Recommendation", de.get('recommendation', 'Unknown'))
+            
+            with col2:
+                st.metric("📈 Growth Score", f"{de.get('growth_score', '?')}/100")
+            
+            with col3:
+                st.metric("🌱 Sustainability", f"{de.get('sustainability_score', '?')}/100")
+            
+            st.markdown(f"**Reasoning:** {de.get('reasoning', 'Analysis unavailable')}")
+        
+        # ABSOLEM'S COMPLEMENTARY PERSPECTIVE
+        with st.container(border=True):
+            st.markdown("#### 💭 Absolem's Complementary Wisdom")
+            
+            ap = reflection.get('absolem_perspective', {})
+            st.markdown(f"> *{ap.get('advice', 'Wisdom unavailable')}*")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### 🛤️ Sustainable Action Plan")
-                for i, action in enumerate(reflection['action_plan'], 1):
-                    st.markdown(f"{i}. {action}")
+                st.markdown(f"**Type:** {ap.get('type', 'wisdom')}")
+                st.markdown(f"**Focus:** {ap.get('focus', 'Burnout prevention')}")
             
             with col2:
-                st.markdown("#### 📊 Comparative Insight")
-                st.markdown(f"*{reflection['comparison_insight']}*")
-            
-            st.divider()
-            
-            col1, col2 = st.columns([3, 1])
-            with col2:
-                if st.button("🔄 Get New Wisdom", width='stretch'):
-                    st.session_state.ai_reflection = None
-                    st.rerun()
-            
-            with col1:
-                st.caption(f"*Source: {reflection['source']}*")
+                st.info("✨ **Note:** Absolem's perspective complements the analytical insight, emphasizing factors the algorithms might miss—like emotional sustainability and rest.")
+        
+        # ACTION PLAN
+        with st.container(border=True):
+            st.markdown("#### 🛤️ Sustainable Action Plan")
+            for i, action in enumerate(reflection.get('action_plan', []), 1):
+                st.markdown(f"{i}. {action}")
+        
+        st.divider()
+        
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("🔄 Get New Wisdom", width='stretch'):
+                st.session_state.ai_reflection = None
+                st.rerun()
+        
+        with col1:
+            st.caption(f"*Source: {reflection.get('source', 'Unknown')}*")
     
     st.divider()
     

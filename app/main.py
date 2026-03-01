@@ -186,10 +186,10 @@ def reflect(request: ReflectionRequest):
         )
         
         return ReflectionResponse(
-            advice=wisdom["advice"],
-            action_plan=wisdom["action_plan"],
-            comparison_insight=wisdom["comparison_insight"],
-            source=wisdom["source"]
+            decision_engine=wisdom.get("decision_engine", {}),
+            absolem_perspective=wisdom.get("absolem_perspective", {}),
+            action_plan=wisdom.get("action_plan", []),
+            source=wisdom.get("source", "Unknown")
         )
     
     except Exception as e:
@@ -199,11 +199,12 @@ def reflect(request: ReflectionRequest):
         logger = logging.getLogger(__name__)
         logger.error(f"Reflection error: {e}. Using fallback wisdom.")
         
+        fallback = ABSOLEM_FALLBACK_WISDOM
         return ReflectionResponse(
-            advice=ABSOLEM_FALLBACK_WISDOM["advice"],
-            action_plan=ABSOLEM_FALLBACK_WISDOM["action_plan"],
-            comparison_insight=ABSOLEM_FALLBACK_WISDOM["comparison_insight"],
-            source=f"{ABSOLEM_FALLBACK_WISDOM['source']} (error occurred: {str(e)[:50]})"
+            decision_engine=fallback.get("decision_engine", {}),
+            absolem_perspective=fallback.get("absolem_perspective", {}),
+            action_plan=fallback.get("action_plan", []),
+            source=f"{fallback.get('source', 'Unknown')} (error: {str(e)[:50]})"
         )
 
 
