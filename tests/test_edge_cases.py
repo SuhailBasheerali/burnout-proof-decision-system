@@ -105,9 +105,9 @@ class TestBurnoutRiskTriggers:
                 {
                     "title": "Burnout Trap",
                     "growth_criteria": [
-                        {"weight": 9.0, "impact": 9},
-                        {"weight": 9.0, "impact": 9},
-                        {"weight": 9.0, "impact": 9},
+                        {"weight": 9.5, "impact": 9},
+                        {"weight": 9.5, "impact": 9},
+                        {"weight": 9.5, "impact": 9},
                     ],
                     "sustainability_criteria": [
                         {"weight": 1.0, "impact": 1},
@@ -256,7 +256,7 @@ class TestDimensionSpecificSensitivity:
                 {
                     "title": "High Weight Variance",
                     "growth_criteria": [
-                        {"weight": 9.0, "impact": 5},  # High importance
+                        {"weight": 9.5, "impact": 5},  # High importance
                         {"weight": 1.0, "impact": 5},  # Low importance
                         {"weight": 1.0, "impact": 5},  # Low importance
                     ],
@@ -323,7 +323,7 @@ class TestCloseCompetition:
                         {"weight": 6.0, "impact": 6},
                     ],
                     "sustainability_criteria": [
-                        {"weight": 6.9, "impact": 7},  # Nearly identical
+                        {"weight": 6.5, "impact": 7},  # Nearly identical (0.5 less)
                     ]
                 }
             ]
