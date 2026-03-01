@@ -98,9 +98,10 @@ def _check_daily_limit() -> tuple[bool, str]:
         return True, f"API calls available: {remaining}/{MAX_CALLS_PER_DAY}"
 
 
-def _call_gemini_with_retry(model, prompt: str, max_retries: int = 2) -> Optional[str]:
+def _call_gemini_with_retry(model, prompt: str, max_retries: int = 4) -> Optional[str]:
     """
     Call Gemini API with exponential backoff for quota (429) errors.
+    Gemini free tier: 15 requests/minute (1 request per 4 seconds minimum).
     
     Returns the response text or None if failed after retries.
     """
@@ -120,7 +121,8 @@ def _call_gemini_with_retry(model, prompt: str, max_retries: int = 2) -> Optiona
             
             # Check for quota/rate limit errors (429)
             if "429" in error_str or "quota" in error_str or "rate limit" in error_str:
-                wait_time = min(2 ** attempt, 10)  # Exponential backoff: 1s, 2s, 4s, max 10s
+                # Exponential backoff: 4s, 4s, 9s, 27s (respects 15 req/min limit)
+                wait_time = max(4, min(3 ** attempt, 60))
                 
                 if attempt < max_retries:
                     logger.warning(f"⏱️  Quota limit hit, waiting {wait_time}s before retry ({attempt+1}/{max_retries})...")
