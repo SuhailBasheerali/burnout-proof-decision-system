@@ -120,7 +120,7 @@ class AbsolemReflector:
         if self.api_key and GEMINI_AVAILABLE:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-1.5-flash")
+                self.model = genai.GenerativeModel("gemini-2.0-flash")
                 self.gemini_available = True
                 logger.info("✨ Gemini API initialized successfully")
             except Exception as e:
@@ -280,13 +280,7 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
                     generation_config=genai.types.GenerationConfig(
                         max_output_tokens=200,
                         temperature=0.7,
-                    ),
-                    safety_settings=[
-                        {
-                            "category": genai.types.HarmCategory.HARM_CATEGORY_UNSPECIFIED,
-                            "threshold": genai.types.HarmBlockThreshold.BLOCK_NONE,
-                        }
-                    ]
+                    )
                 )
                 
                 # Increment daily call counter after successful API call
