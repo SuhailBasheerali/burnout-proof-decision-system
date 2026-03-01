@@ -10,6 +10,7 @@ import os
 import json
 import hashlib
 import logging
+import time
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -105,6 +106,46 @@ def _check_daily_limit() -> tuple[bool, str]:
         return True, f"API calls available: {remaining}/{MAX_CALLS_PER_DAY}"
 
 
+def _call_gemini_with_retry(model, prompt: str, max_retries: int = 2) -> Optional[str]:
+    """
+    Call Gemini API with exponential backoff for quota (429) errors.
+    
+    Returns the response text or None if failed after retries.
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=500,
+                    temperature=0.7,
+                )
+            )
+            return response.text.strip()
+        
+        except Exception as e:
+            error_str = str(e).lower()
+            
+            # Check for quota/rate limit errors (429)
+            if "429" in error_str or "quota" in error_str or "rate limit" in error_str:
+                wait_time = min(2 ** attempt, 10)  # Exponential backoff: 1s, 2s, 4s, max 10s
+                
+                if attempt < max_retries:
+                    logger.warning(f"⏱️  Quota limit hit, waiting {wait_time}s before retry ({attempt+1}/{max_retries})...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.warning(f"🛑 Quota exceeded after {max_retries} retries. Using fallback wisdom.")
+                    return None
+            
+            # Other errors (auth, server, etc.) - don't retry
+            logger.warning(f"❌ Gemini API error (attempt {attempt+1}): {e}")
+            return None
+    
+    return None
+
+
+
 class AbsolemReflector:
     """AI Reflective advisory layer with Absolem character theme."""
     
@@ -165,37 +206,22 @@ class AbsolemReflector:
             logger.warning(f"Cache write failed: {e}")
     
     def _create_prompt(self, options: list, best_option: str, analysis_data: dict) -> str:
-        """Create Absolem-themed prompt for review suggestion."""
-        # Handle both dict and Pydantic model inputs
-        options_names = []
-        for opt in options:
-            if hasattr(opt, 'title'):
-                # Pydantic model
-                options_names.append(opt.title)
-            elif isinstance(opt, dict) and 'title' in opt:
-                # Dictionary
-                options_names.append(opt['title'])
-            elif isinstance(opt, dict) and 'name' in opt:
-                # Alternative dict format
-                options_names.append(opt['name'])
-        
-        options_str = ", ".join(options_names) if options_names else "unknown options"
-        
-        return f"""You are Absolem, a wise guardian focused on preventing burnout through real human wisdom.
+        """Create Absolem-themed prompt for action plan and reflection."""
+        return f"""You are Absolem, a wise guardian helping prevent burnout.
 
-CONTEXT:
-- Student has {len(options)} options: {options_str}
-- Algorithm recommends: '{best_option}'
-- Growth: {analysis_data.get('growth_score', '?')}/100, Sustainability: {analysis_data.get('sustainability_score', '?')}/100
+Student chooses: '{best_option}' (Growth: {analysis_data.get('growth_score', '?')}/100, Sustainability: {analysis_data.get('sustainability_score', '?')}/100)
 
-YOUR ROLE:
-Consider the HUMAN and EMOTIONAL factors that pure algorithms cannot measure. 
-In 2-3 sentences, suggest what the student should review or reconsider about this choice:
-- Hidden emotional costs (stress, confidence, identity)
-- Real-life scenarios (support system, energy levels, recovery time)
-- Long-term sustainability (not just scores, but actual wellbeing)
+Provide two sections:
 
-Be cryptic but wise. Help them question whether this choice truly serves their spirit, not just their metrics."""
+[REFLECTION]
+Write 2-3 wise sentences on whether this choice prevents burnout and serves their spirit, not just metrics.
+
+[ACTION PLAN]
+List 3-4 brief, numbered steps specific to '{best_option}':
+1. [step]
+2. [step]  
+3. [step]
+"""
     
     def get_reflection(self, options: list, comparison_result: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -297,20 +323,59 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
             
             try:
                 prompt = self._create_prompt(options, best_option, analysis_data)
-                response = self.model.generate_content(
-                    prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        max_output_tokens=200,
-                        temperature=0.7,
-                    )
-                )
                 
-                # Increment daily call counter after successful API call
+                # Call Gemini with retry logic for quota errors
+                full_response = _call_gemini_with_retry(self.model, prompt, max_retries=2)
+                
+                if full_response is None:
+                    # Quota or API error - use fallback
+                    logger.warning("Failed to get Gemini response after retries. Using fallback wisdom.")
+                    self.usage_stats["failed_calls"] += 1
+                    return ABSOLEM_FALLBACK_WISDOM
+                
+                # Increment daily call counter only on successful API call
                 _increment_daily_call_count()
                 
-                wisdom_text = response.text.strip()
+                # Parse Gemini response into reflection and action plan
+                reflection_text = ""
+                action_plan_text = []
                 
-                # Build simple response: algorithm decision + action plan + review suggestion
+                try:
+                    # Extract [REFLECTION] section
+                    if "[REFLECTION]" in full_response:
+                        start = full_response.find("[REFLECTION]") + len("[REFLECTION]")
+                        end = full_response.find("[ACTION PLAN]")
+                        if end == -1:
+                            end = len(full_response)
+                        reflection_text = full_response[start:end].strip()
+                    
+                    # Extract [ACTION PLAN] section
+                    if "[ACTION PLAN]" in full_response:
+                        start = full_response.find("[ACTION PLAN]") + len("[ACTION PLAN]")
+                        action_text = full_response[start:].strip()
+                        # Split by newlines and filter numbered items (1. 2. 3. etc)
+                        lines = [line.strip() for line in action_text.split('\n') if line.strip()]
+                        action_plan_text = [line for line in lines if line and line[0].isdigit()]
+                    
+                    # Fallback if parsing failed
+                    if not reflection_text:
+                        reflection_text = full_response
+                    if not action_plan_text:
+                        action_plan_text = [
+                            f"1. Focus on sustaining '{best_option}' with balance",
+                            "2. Check in with yourself weekly on wellbeing",
+                            "3. Adjust if the path doesn't serve your spirit"
+                        ]
+                except Exception as parse_err:
+                    logger.warning(f"Response parsing error: {parse_err}. Using fallback.")
+                    reflection_text = full_response
+                    action_plan_text = [
+                        f"1. Focus on sustaining '{best_option}' with balance",
+                        "2. Check in with yourself weekly on wellbeing",
+                        "3. Adjust if the path doesn't serve your spirit"
+                    ]
+                
+                # Build response with AI-generated action plan
                 result = {
                     "algorithm_decision": {
                         "recommendation": best_option,
@@ -318,13 +383,9 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
                         "sustainability_score": analysis_data.get("sustainability_score"),
                         "reasoning": f"Balances growth ({analysis_data.get('growth_score', '?')}/100) with sustainability ({analysis_data.get('sustainability_score', '?')}/100)"
                     },
-                    "action_plan": [
-                        f"1. Commit to '{best_option}' as your chosen path",
-                        "2. Build in regular rest periods - don't sacrifice wellbeing for growth",
-                        "3. Review weekly: Are you thriving or just surviving?"
-                    ],
+                    "action_plan": action_plan_text,
                     "before_you_decide": {
-                        "review_suggestion": wisdom_text,
+                        "review_suggestion": reflection_text,
                         "focus": "Consider human emotions and real-life scenarios the metrics don't capture"
                     },
                     "source": "Decision Engine + Absolem (via Gemini)"
