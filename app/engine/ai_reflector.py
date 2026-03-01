@@ -19,17 +19,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Default Absolem wisdom - used as fallback (matches new response structure)
+# Default Absolem wisdom - used as fallback (matches new dual-perspective structure)
 ABSOLEM_FALLBACK_WISDOM = {
+    "recommendations_match": True,  # Fallback assumes alignment
     "decision_engine": {
-        "recommendation": "Unable to determine - API unavailable",
+        "recommendation": "Unable to determine",
         "growth_score": None,
         "sustainability_score": None,
-        "reasoning": "Algorithmic analysis unavailable; rely on Absolem's wisdom"
     },
     "absolem_perspective": {
         "advice": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
-        "type": "fallback_complementary",
         "focus": "Burnout prevention through wisdom rather than metrics"
     },
     "action_plan": [
@@ -73,7 +72,52 @@ class AbsolemReflector:
         """Generate cache key from options."""
         return hashlib.md5(options_summary.encode()).hexdigest()
     
-    def _load_from_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    def _extract_absolem_recommendation(self, wisdom_text: str, available_options: list) -> tuple:
+        """
+        Extract Absolem's recommendation from their wisdom text.
+        Returns: (recommended_option, full_advice)
+        """
+        # Look for "I recommend: [option]" pattern
+        import re
+        
+        recommendation = None
+        advice = wisdom_text
+        
+        # Extract option names
+        option_names = []
+        for opt in available_options:
+            if hasattr(opt, 'title'):
+                option_names.append(opt.title)
+            elif isinstance(opt, dict) and 'title' in opt:
+                option_names.append(opt['title'])
+            elif isinstance(opt, dict) and 'name' in opt:
+                option_names.append(opt['name'])
+        
+        # Look for "I recommend:" or "🔮 I recommend:" pattern
+        match = re.search(r"I recommend:\s*(['\"]?)(.+?)\1", wisdom_text, re.IGNORECASE)
+        if match:
+            recommended = match.group(2).strip().strip("'\"")
+            # Check if it matches one of the available options (case-insensitive)
+            for opt_name in option_names:
+                if recommended.lower() == opt_name.lower():
+                    recommendation = opt_name
+                    # Clean up the advice text to remove the "I recommend" part
+                    advice = re.sub(r"🔮?\s*I recommend:.*?\n", "", wisdom_text, flags=re.IGNORECASE).strip()
+                    break
+        
+        return recommendation, advice
+    
+    def _extract_reasoning_from_wisdom(self, wisdom_text: str, best_option: str, absolem_recommendation: str) -> dict:
+        """Extract human-focused missing factors from Absolem's wisdom."""
+        # The wisdom text contains what algorithms miss
+        # Return structured format for display
+        return {
+            "absolem_recommendation": absolem_recommendation,
+            "algorithm_recommendation": best_option,
+            "recommendations_match": (absolem_recommendation and absolem_recommendation.lower() == best_option.lower()),
+            "what_algorithm_misses": wisdom_text  # The advice itself is the missing perspective
+        }
+
         """Load cached response if available and not expired."""
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cache_file = CACHE_DIR / f"{cache_key}.json"
@@ -107,7 +151,7 @@ class AbsolemReflector:
             logger.warning(f"Cache write failed: {e}")
     
     def _create_prompt(self, options: list, best_option: str, analysis_data: dict) -> str:
-        """Create Absolem-themed prompt with decision engine context."""
+        """Create Absolem-themed prompt that extracts a specific recommendation."""
         # Handle both dict and Pydantic model inputs
         options_names = []
         for opt in options:
@@ -122,21 +166,24 @@ class AbsolemReflector:
                 options_names.append(opt['name'])
         
         options_str = ", ".join(options_names) if options_names else "unknown options"
-        return f"""You are Absolem, a wise guardian from the Caterpillar Kingdom. Your role is to provide a COMPLEMENTARY perspective on student decisions.
+        options_list = ", ".join([f"'{name}'" for name in options_names]) if options_names else "unknown options"
+        
+        return f"""You are Absolem, a wise guardian focused on burnout prevention in decision-making.
 
 CONTEXT:
 - Student has {len(options)} options: {options_str}
-- Decision Engine analysis recommends: '{best_option}'
-- Metrics: Growth {analysis_data.get('growth_score', '?')}/100, Sustainability {analysis_data.get('sustainability_score', '?')}/100
+- Analytical recommendation: '{best_option}'
+- Growth score: {analysis_data.get('growth_score', '?')}/100, Sustainability: {analysis_data.get('sustainability_score', '?')}/100
 
-YOUR ROLE:
-You are NOT replacing the analysis. Instead, provide a COMPLEMENTARY wisdom:
-1. Acknowledge what the analysis shows
-2. Add a BURNOUT PREVENTION angle the algorithms miss
-3. Suggest if there's a different priority (sustainability over pure growth)
-4. Be cryptic but helpful
+YOUR TASK:
+1. State your recommendation clearly at the start: "🔮 I recommend: [OPTION_NAME]"
+2. Explain briefly (1-2 sentences) what the algorithm might miss - focus on emotional factors, rest, energy
+3. Be cryptic but helpful
 
-In 2-3 sentences, give your unique perspective on preventing burnout. Focus on what the metrics MIGHT NOT capture."""
+IMPORTANT: You MUST state your recommendation as one of these options: {options_list}
+Format: "🔮 I recommend: [exact option name]"
+
+Then provide your unique burnout-prevention insight."""
     
     def get_reflection(self, options: list, comparison_result: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -223,23 +270,57 @@ In 2-3 sentences, give your unique perspective on preventing burnout. Focus on w
                 
                 wisdom_text = response.text.strip()
                 
-                # Build response with both Decision Engine insight and Absolem's perspective
-                result = {
-                    "decision_engine": {
-                        "recommendation": best_option,
-                        "growth_score": analysis_data.get("growth_score"),
-                        "sustainability_score": analysis_data.get("sustainability_score"),
-                        "reasoning": f"Strong composite score balancing growth ({analysis_data.get('growth_score', '?')}) and sustainability ({analysis_data.get('sustainability_score', '?')})"
-                    },
-                    "absolem_perspective": {
-                        "advice": wisdom_text,
-                        "type": "complementary",
-                        "focus": "Burnout prevention and sustainability angles the algorithms might miss"
-                    },
-                    "action_plan": [
-                        "Reflect on both the analytical insight and Absolem's wisdom",
-                        f"If choosing '{best_option}', ensure you have rest periods built in",
-                        "Monitor your burnout signals weekly; adjust course if needed"
+                # Extract Absolem's recommendation from their response
+                absolem_recommendation, absolem_advice = self._extract_absolem_recommendation(wisdom_text, options)
+                
+                # Determine if recommendations match
+                recommendations_match = (absolem_recommendation and 
+                                       absolem_recommendation.lower() == best_option.lower())
+                
+                # Build response based on whether they agree or disagree
+                if recommendations_match or not absolem_recommendation:
+                    # Recommendations align - show Absolem's wisdom (simpler)
+                    result = {
+                        "recommendations_match": True,
+                        "decision_engine": {
+                            "recommendation": best_option,
+                            "growth_score": analysis_data.get("growth_score"),
+                            "sustainability_score": analysis_data.get("sustainability_score"),
+                        },
+                        "absolem_perspective": {
+                            "advice": absolem_advice if absolem_advice else wisdom_text,
+                            "focus": "Burnout prevention perspective on the recommended option"
+                        },
+                        "action_plan": [
+                            f"Proceed with '{best_option}' - both analysis and wisdom align",
+                            "Ensure you have rest periods built into this choice",
+                            "Monitor your burnout signals weekly; adjust if needed"
+                        ],
+                        "source": "Absolem (via Gemini)"
+                    }
+                else:
+                    # Recommendations differ - show detailed comparison
+                    result = {
+                        "recommendations_match": False,
+                        "decision_engine": {
+                            "recommendation": best_option,
+                            "growth_score": analysis_data.get("growth_score"),
+                            "sustainability_score": analysis_data.get("sustainability_score"),
+                            "reasoning": f"Algorithm prioritizes growth ({analysis_data.get('growth_score', '?')}) and sustainability balance ({analysis_data.get('sustainability_score', '?')})"
+                        },
+                        "absolem_perspective": {
+                            "recommendation": absolem_recommendation or best_option,
+                            "missing_factors": absolem_advice if absolem_advice else wisdom_text,
+                            "focus": "Human/emotional factors algorithms might overlook (rest, energy, wellbeing)"
+                        },
+                        "action_plan": [
+                            f"Algorithm suggests: '{best_option}' (stronger scores)",
+                            f"Absolem suggests: '{absolem_recommendation or best_option}' (better for burnout prevention)",
+                            "Consider which aligns better with your energy and wellbeing"
+                        ],
+                        "source": "Decision Engine + Absolem (via Gemini)"
+                    }
+
                     ],
                     "source": "Decision Engine + Absolem (via Gemini)"
                 }
