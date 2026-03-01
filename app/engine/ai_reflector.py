@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 try:
-    import google.generativeai as genai
+    import google.genai as genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
