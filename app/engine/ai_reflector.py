@@ -108,7 +108,7 @@ def _call_gemini_with_retry(model, prompt: str, max_retries: int = 2) -> Optiona
             response = model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=500,
+                    max_output_tokens=1500,
                     temperature=0.7,
                 )
             )
