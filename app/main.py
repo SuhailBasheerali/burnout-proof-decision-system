@@ -27,7 +27,13 @@ from app.engine.comparator import detect_close_competition
 from app.engine.ai_reflector import get_absolem_wisdom, get_reflector
 import logging
 
+# Configure logging to display INFO level messages
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s:     %(message)s"
+)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 app = FastAPI(title="Burnout-Proof Decision Engine")
 
