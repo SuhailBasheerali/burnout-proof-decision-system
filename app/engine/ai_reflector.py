@@ -3,6 +3,8 @@ AI Reflector Module - Absolem's Wisdom Layer
 Provides burnout prevention advice using Google Gemini API with fallback strategies.
 """
 
+from dotenv import load_dotenv
+load_dotenv()  # Load .env file immediately on module import
 
 import os
 import json

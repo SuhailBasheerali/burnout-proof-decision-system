@@ -24,10 +24,21 @@ from app.engine.sensitivity import (
     classify_stability,
 )
 from app.engine.comparator import detect_close_competition
-from app.engine.ai_reflector import get_absolem_wisdom
+from app.engine.ai_reflector import get_absolem_wisdom, get_reflector
 
 
 app = FastAPI(title="Burnout-Proof Decision Engine")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize Absolem AI reflector at app startup."""
+    reflector = get_reflector()
+    logger = __import__("logging").getLogger(__name__)
+    if reflector.gemini_available:
+        logger.info("✨ Gemini API is available and ready")
+    else:
+        logger.warning("⚠️  Gemini API not available - using fallback wisdom")
 
 
 @app.get("/")
