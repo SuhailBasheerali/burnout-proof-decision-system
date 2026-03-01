@@ -169,9 +169,10 @@ def reflect(request: ReflectionRequest):
     Get Absolem's reflective wisdom on the decision.
     
     This endpoint provides:
-    - Cryptic yet insightful advice from Absolem
+    - Absolem's review of the algorithm's recommendation
+    - Consideration of human factors and emotions
     - Burnout prevention action plan
-    - Comparative sustainability analysis
+    - Before-you-decide suggestions based on real-life scenarios
     
     Includes mitigation strategies:
     - Falls back to default wisdom if API unavailable
@@ -186,9 +187,9 @@ def reflect(request: ReflectionRequest):
         )
         
         return ReflectionResponse(
-            decision_engine=wisdom.get("decision_engine", {}),
-            absolem_perspective=wisdom.get("absolem_perspective", {}),
+            algorithm_decision=wisdom.get("algorithm_decision", {}),
             action_plan=wisdom.get("action_plan", []),
+            before_you_decide=wisdom.get("before_you_decide", {}),
             source=wisdom.get("source", "Unknown")
         )
     
@@ -201,9 +202,9 @@ def reflect(request: ReflectionRequest):
         
         fallback = ABSOLEM_FALLBACK_WISDOM
         return ReflectionResponse(
-            decision_engine=fallback.get("decision_engine", {}),
-            absolem_perspective=fallback.get("absolem_perspective", {}),
+            algorithm_decision=fallback.get("algorithm_decision", {}),
             action_plan=fallback.get("action_plan", []),
+            before_you_decide=fallback.get("before_you_decide", {}),
             source=f"{fallback.get('source', 'Unknown')} (error: {str(e)[:50]})"
         )
 

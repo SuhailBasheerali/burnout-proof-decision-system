@@ -19,23 +19,23 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Default Absolem wisdom - used as fallback (matches new dual-perspective structure)
+# Default Absolem wisdom - used as fallback
 ABSOLEM_FALLBACK_WISDOM = {
-    "recommendations_match": True,  # Fallback assumes alignment
-    "decision_engine": {
+    "algorithm_decision": {
         "recommendation": "Unable to determine",
         "growth_score": None,
         "sustainability_score": None,
-    },
-    "absolem_perspective": {
-        "advice": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
-        "focus": "Burnout prevention through wisdom rather than metrics"
+        "reasoning": "Analysis unavailable - rely on your intuition"
     },
     "action_plan": [
-        "Identify which option allows you to rest without guilt",
-        "Build buffer time into your chosen path—urgency breeds burnout",
-        "Review your choice weekly; adjust when the path no longer feels sustainable"
+        "1. Pause and reflect on which option feels sustainable",
+        "2. Consider your energy levels and support system",
+        "3. Choose what allows you to rest without guilt"
     ],
+    "before_you_decide": {
+        "review_suggestion": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
+        "focus": "Trust your emotional intelligence alongside the metrics"
+    },
     "source": "Absolem's Fallback Wisdom"
 }
 
@@ -72,69 +72,22 @@ class AbsolemReflector:
         """Generate cache key from options."""
         return hashlib.md5(options_summary.encode()).hexdigest()
     
-    def _extract_absolem_recommendation(self, wisdom_text: str, available_options: list) -> tuple:
-        """
-        Extract Absolem's recommendation from their wisdom text.
-        Returns: (recommended_option, full_advice)
-        """
-        # Look for "I recommend: [option]" pattern
-        import re
-        
-        recommendation = None
-        advice = wisdom_text
-        
-        # Extract option names
-        option_names = []
-        for opt in available_options:
-            if hasattr(opt, 'title'):
-                option_names.append(opt.title)
-            elif isinstance(opt, dict) and 'title' in opt:
-                option_names.append(opt['title'])
-            elif isinstance(opt, dict) and 'name' in opt:
-                option_names.append(opt['name'])
-        
-        # Look for "I recommend:" or "🔮 I recommend:" pattern
-        match = re.search(r"I recommend:\s*(['\"]?)(.+?)\1", wisdom_text, re.IGNORECASE)
-        if match:
-            recommended = match.group(2).strip().strip("'\"")
-            # Check if it matches one of the available options (case-insensitive)
-            for opt_name in option_names:
-                if recommended.lower() == opt_name.lower():
-                    recommendation = opt_name
-                    # Clean up the advice text to remove the "I recommend" part
-                    advice = re.sub(r"🔮?\s*I recommend:.*?\n", "", wisdom_text, flags=re.IGNORECASE).strip()
-                    break
-        
-        return recommendation, advice
-    
-    def _extract_reasoning_from_wisdom(self, wisdom_text: str, best_option: str, absolem_recommendation: str) -> dict:
-        """Extract human-focused missing factors from Absolem's wisdom."""
-        # The wisdom text contains what algorithms miss
-        # Return structured format for display
-        return {
-            "absolem_recommendation": absolem_recommendation,
-            "algorithm_recommendation": best_option,
-            "recommendations_match": (absolem_recommendation and absolem_recommendation.lower() == best_option.lower()),
-            "what_algorithm_misses": wisdom_text  # The advice itself is the missing perspective
-        }
-
-        """Load cached response if available and not expired."""
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        cache_file = CACHE_DIR / f"{cache_key}.json"
-        
-        if cache_file.exists():
-            try:
+    def _load_from_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Load response from cache if available and not expired."""
+        try:
+            cache_file = CACHE_DIR / f"{cache_key}.json"
+            if cache_file.exists():
                 with open(cache_file, 'r') as f:
                     cached = json.load(f)
-                    cache_time = datetime.fromisoformat(cached["timestamp"])
-                    if datetime.now() - cache_time < timedelta(hours=CACHE_EXPIRY_HOURS):
+                    timestamp = datetime.fromisoformat(cached.get("timestamp", ""))
+                    if datetime.now() - timestamp < timedelta(hours=CACHE_EXPIRY_HOURS):
                         self.usage_stats["cached_calls"] += 1
                         logger.info(f"📚 Cache hit - reusing Absolem's previous wisdom")
                         return cached["response"]
                     else:
                         cache_file.unlink()
-            except Exception as e:
-                logger.warning(f"Cache read error: {e}")
+        except Exception as e:
+            logger.warning(f"Cache read error: {e}")
         return None
     
     def _save_to_cache(self, cache_key: str, response: Dict[str, Any]):
@@ -151,7 +104,7 @@ class AbsolemReflector:
             logger.warning(f"Cache write failed: {e}")
     
     def _create_prompt(self, options: list, best_option: str, analysis_data: dict) -> str:
-        """Create Absolem-themed prompt that extracts a specific recommendation."""
+        """Create Absolem-themed prompt for review suggestion."""
         # Handle both dict and Pydantic model inputs
         options_names = []
         for opt in options:
@@ -166,24 +119,22 @@ class AbsolemReflector:
                 options_names.append(opt['name'])
         
         options_str = ", ".join(options_names) if options_names else "unknown options"
-        options_list = ", ".join([f"'{name}'" for name in options_names]) if options_names else "unknown options"
         
-        return f"""You are Absolem, a wise guardian focused on burnout prevention in decision-making.
+        return f"""You are Absolem, a wise guardian focused on preventing burnout through real human wisdom.
 
 CONTEXT:
 - Student has {len(options)} options: {options_str}
-- Analytical recommendation: '{best_option}'
-- Growth score: {analysis_data.get('growth_score', '?')}/100, Sustainability: {analysis_data.get('sustainability_score', '?')}/100
+- Algorithm recommends: '{best_option}'
+- Growth: {analysis_data.get('growth_score', '?')}/100, Sustainability: {analysis_data.get('sustainability_score', '?')}/100
 
-YOUR TASK:
-1. State your recommendation clearly at the start: "🔮 I recommend: [OPTION_NAME]"
-2. Explain briefly (1-2 sentences) what the algorithm might miss - focus on emotional factors, rest, energy
-3. Be cryptic but helpful
+YOUR ROLE:
+Consider the HUMAN and EMOTIONAL factors that pure algorithms cannot measure. 
+In 2-3 sentences, suggest what the student should review or reconsider about this choice:
+- Hidden emotional costs (stress, confidence, identity)
+- Real-life scenarios (support system, energy levels, recovery time)
+- Long-term sustainability (not just scores, but actual wellbeing)
 
-IMPORTANT: You MUST state your recommendation as one of these options: {options_list}
-Format: "🔮 I recommend: [exact option name]"
-
-Then provide your unique burnout-prevention insight."""
+Be cryptic but wise. Help them question whether this choice truly serves their spirit, not just their metrics."""
     
     def get_reflection(self, options: list, comparison_result: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -270,58 +221,23 @@ Then provide your unique burnout-prevention insight."""
                 
                 wisdom_text = response.text.strip()
                 
-                # Extract Absolem's recommendation from their response
-                absolem_recommendation, absolem_advice = self._extract_absolem_recommendation(wisdom_text, options)
-                
-                # Determine if recommendations match
-                recommendations_match = (absolem_recommendation and 
-                                       absolem_recommendation.lower() == best_option.lower())
-                
-                # Build response based on whether they agree or disagree
-                if recommendations_match or not absolem_recommendation:
-                    # Recommendations align - show Absolem's wisdom (simpler)
-                    result = {
-                        "recommendations_match": True,
-                        "decision_engine": {
-                            "recommendation": best_option,
-                            "growth_score": analysis_data.get("growth_score"),
-                            "sustainability_score": analysis_data.get("sustainability_score"),
-                        },
-                        "absolem_perspective": {
-                            "advice": absolem_advice if absolem_advice else wisdom_text,
-                            "focus": "Burnout prevention perspective on the recommended option"
-                        },
-                        "action_plan": [
-                            f"Proceed with '{best_option}' - both analysis and wisdom align",
-                            "Ensure you have rest periods built into this choice",
-                            "Monitor your burnout signals weekly; adjust if needed"
-                        ],
-                        "source": "Absolem (via Gemini)"
-                    }
-                else:
-                    # Recommendations differ - show detailed comparison
-                    result = {
-                        "recommendations_match": False,
-                        "decision_engine": {
-                            "recommendation": best_option,
-                            "growth_score": analysis_data.get("growth_score"),
-                            "sustainability_score": analysis_data.get("sustainability_score"),
-                            "reasoning": f"Algorithm prioritizes growth ({analysis_data.get('growth_score', '?')}) and sustainability balance ({analysis_data.get('sustainability_score', '?')})"
-                        },
-                        "absolem_perspective": {
-                            "recommendation": absolem_recommendation or best_option,
-                            "missing_factors": absolem_advice if absolem_advice else wisdom_text,
-                            "focus": "Human/emotional factors algorithms might overlook (rest, energy, wellbeing)"
-                        },
-                        "action_plan": [
-                            f"Algorithm suggests: '{best_option}' (stronger scores)",
-                            f"Absolem suggests: '{absolem_recommendation or best_option}' (better for burnout prevention)",
-                            "Consider which aligns better with your energy and wellbeing"
-                        ],
-                        "source": "Decision Engine + Absolem (via Gemini)"
-                    }
-
+                # Build simple response: algorithm decision + action plan + review suggestion
+                result = {
+                    "algorithm_decision": {
+                        "recommendation": best_option,
+                        "growth_score": analysis_data.get("growth_score"),
+                        "sustainability_score": analysis_data.get("sustainability_score"),
+                        "reasoning": f"Balances growth ({analysis_data.get('growth_score', '?')}/100) with sustainability ({analysis_data.get('sustainability_score', '?')}/100)"
+                    },
+                    "action_plan": [
+                        f"1. Commit to '{best_option}' as your chosen path",
+                        "2. Build in regular rest periods - don't sacrifice wellbeing for growth",
+                        "3. Review weekly: Are you thriving or just surviving?"
                     ],
+                    "before_you_decide": {
+                        "review_suggestion": wisdom_text,
+                        "focus": "Consider human emotions and real-life scenarios the metrics don't capture"
+                    },
                     "source": "Decision Engine + Absolem (via Gemini)"
                 }
                 

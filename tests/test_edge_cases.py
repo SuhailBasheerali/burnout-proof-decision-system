@@ -242,8 +242,8 @@ class TestSensitivityBreakdown:
         eval_item = data["evaluations"][0]
         breakdown = eval_item["sensitivity_breakdown"].lower()
         
-        # Should mention importance/weight and impact
-        assert "importance" in breakdown or "weight" in breakdown or "pts" in breakdown
+        # Should mention robustness and estimates (simplified verbal format)
+        assert "robustness" in breakdown or "estimates" in breakdown or "reliable" in breakdown
 
 
 class TestDimensionSpecificSensitivity:

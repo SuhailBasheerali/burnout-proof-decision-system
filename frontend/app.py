@@ -775,81 +775,41 @@ def render_phase_3():
         # Display the wisdom
         reflection = st.session_state.ai_reflection
         
-        # Check if recommendations match
-        recommendations_match = reflection.get('recommendations_match', True)
+        # ALGORITHM'S DECISION
+        with st.container(border=True):
+            st.markdown("#### 🎯 Decision Analysis")
+            
+            ad = reflection.get('algorithm_decision', {})
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("📌 Recommended", ad.get('recommendation', 'Unknown'))
+            with col2:
+                st.metric("📈 Growth", f"{ad.get('growth_score', '?')}/100")
+            with col3:
+                st.metric("🌱 Sustainability", f"{ad.get('sustainability_score', '?')}/100")
+            
+            st.divider()
+            st.write(f"**Why:** {ad.get('reasoning', 'Analysis complete')}")
         
-        if recommendations_match:
-            # ALIGNED RECOMMENDATIONS - Simple display with Absolem's wisdom
-            with st.container(border=True):
-                st.markdown("#### ✨ Absolem's Wisdom")
-                
-                de = reflection.get('decision_engine', {})
-                st.metric(
-                    "🎯 Recommended Option",
-                    de.get('recommendation', 'Unknown'),
-                    delta="Analysis Aligned" if recommendations_match else None
-                )
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("📈 Growth", f"{de.get('growth_score', '?')}/100")
-                with col2:
-                    st.metric("🌱 Sustainability", f"{de.get('sustainability_score', '?')}/100")
-                
-                st.divider()
-                
-                ap = reflection.get('absolem_perspective', {})
-                st.markdown(f"*{ap.get('advice', ap.get('missing_factors', 'Wisdom unavailable'))}*")
-                st.caption(f"**Focus:** {ap.get('focus', 'Burnout prevention')}")
-        
-        else:
-            # DIVERGENT RECOMMENDATIONS - Show detailed comparison
-            with st.container(border=True):
-                st.markdown("#### ⚖️ Different Perspectives on Your Decision")
-                st.info("The algorithm and wisdom suggest different priorities. Here's the breakdown:")
-                
-                col1, col2 = st.columns(2)
-                
-                # Decision Engine Perspective
-                with col1:
-                    st.markdown("**🧮 Algorithm's View**")
-                    de = reflection.get('decision_engine', {})
-                    st.markdown(f"**Recommends:** {de.get('recommendation', 'Unknown')}")
-                    st.markdown(f"- Growth Score: {de.get('growth_score', '?')}/100")
-                    st.markdown(f"- Sustainability: {de.get('sustainability_score', '?')}/100")
-                    st.write(f"*{de.get('reasoning', 'Strong analytical scores')}*")
-                
-                # Absolem's Perspective
-                with col2:
-                    st.markdown("**🔮 Absolem's Perspective**")
-                    ap = reflection.get('absolem_perspective', {})
-                    st.markdown(f"**Suggests:** {ap.get('recommendation', 'Unknown')}")
-                    st.markdown(f"**Focus:** {ap.get('focus', 'Burnout prevention')}")
-                    st.write(f"*What the algorithm might miss:*")
-                    st.write(f"{ap.get('missing_factors', ap.get('advice', 'Wisdom unavailable'))}")
-                
-                st.divider()
-                
-                st.markdown("#### 💡 Why They Differ")
-                st.markdown("""
-                The algorithm optimizes for **growth vs. sustainability balance** based on metrics.
-                Absolem prioritizes **human factors** the numbers don't capture:
-                - Your emotional energy and rest needs
-                - Long-term wellbeing over ambitious growth
-                - Signs you might already be headed toward burnout
-                """)
-        
-        # Common section: Action Plan
+        # ACTION PLAN
         with st.container(border=True):
             st.markdown("#### 🛤️ Your Action Plan")
-            for i, action in enumerate(reflection.get('action_plan', []), 1):
-                st.markdown(f"{i}. {action}")
+            for action in reflection.get('action_plan', []):
+                st.markdown(f"• {action}")
+        
+        # BEFORE YOU DECIDE - REVIEW SUGGESTION
+        with st.container(border=True):
+            st.markdown("#### 🔮 Before You Finalize Your Decision")
+            byd = reflection.get('before_you_decide', {})
+            st.info(f"💭 **Reflection:\n\n{byd.get('review_suggestion', 'Consider what you might be missing.')}")
+            st.caption(f"**Consider:** {byd.get('focus', 'The human side of this decision')}")
         
         st.divider()
         
         col1, col2 = st.columns([3, 1])
         with col2:
-            if st.button("🔄 Get New Wisdom", width='stretch'):
+            if st.button("🔄 Get New Advice", width='stretch'):
                 st.session_state.ai_reflection = None
                 st.rerun()
         
