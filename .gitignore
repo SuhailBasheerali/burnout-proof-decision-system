@@ -28,3 +28,11 @@ dist/
 .Python
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Streamlit and Frontend
+.streamlit/secrets.toml
+.streamlit/cache/
+frontend/.streamlit/secrets.toml
+frontend/.streamlit/cache/
+frontend/README.md
+frontend/__init__.py
