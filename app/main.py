@@ -222,3 +222,36 @@ def get_stats():
         "ai_reflection_stats": reflector.get_usage_stats(),
         "message": "Monitor these stats to ensure you stay within Gemini's free tier (1500 requests/day)"
     }
+
+
+@app.get("/api/rate-limits")
+def get_rate_limits():
+    """
+    Get daily API call rate limit information.
+    
+    RATE LIMIT POLICY:
+    - Max calls per day: 50 (recommended for smooth operation)
+    - Reason: Balances free API tier usage with user experience
+    - Caching: Reuses responses for 24 hours (doesn't count against limit)
+    - Reset: Daily at 00:00 UTC
+    
+    Returns:
+        {
+            "max_calls_per_day": 50,
+            "calls_used_today": 3,
+            "calls_remaining": 47,
+            "percentage_used": 6,
+            "reset_time": "2026-03-02T00:00:00Z",
+            "status": "OK | WARNING (<=5 left) | EXCEEDED",
+            "gemini_available": boolean
+        }
+    
+    Recommendations:
+    - Green (OK): No action needed
+    - Yellow (WARNING): Approaching limit, encourage caching/reusing decisions
+    - Red (EXCEEDED): Use fallback wisdom until tomorrow's reset
+    """
+    from app.engine.ai_reflector import get_reflector
+    reflector = get_reflector()
+    
+    return reflector.get_daily_limits_info()
