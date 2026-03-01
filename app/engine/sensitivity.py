@@ -63,11 +63,11 @@ def perform_sensitivity_analysis(criteria, normalize_fn):
     
     # --- DETERMINE WHICH DIMENSION IS MORE FRAGILE ---
     if weight_variance > impact_variance:
-        breakdown = f"Importance estimates are less reliable (±{weight_variance:.1f}pts vs ±{impact_variance:.1f}pts)"
+        breakdown = "Importance estimates are less reliable"
     elif impact_variance > weight_variance:
-        breakdown = f"Effect/impact estimates are less reliable (±{impact_variance:.1f}pts vs ±{weight_variance:.1f}pts)"
+        breakdown = "Effect/impact estimates are less reliable"
     else:
-        breakdown = f"Both dimensions equally fragile (±{weight_variance:.1f}pts)"
+        breakdown = "Both dimensions equally fragile"
     
     # --- COMBINED SENSITIVITY ---
     # Return maximum of weight and impact variances to capture worst-case
