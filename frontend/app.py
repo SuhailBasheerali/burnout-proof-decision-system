@@ -282,14 +282,16 @@ def render_phase_1():
         st.markdown("### 🔢 Number of Paths?")
         num_opts = st.selectbox(
             "Select number of options",
-            options=list(range(2, 6)),
-            index=0,
-            help="Compare 2-5 options (recommended: 2-3 for best analysis)"
+            options=list(range(1, 6)),
+            index=1,
+            help="Compare 1-5 options (recommended: 2-3 for best analysis)"
         )
         st.session_state.num_options = num_opts
         
         # Guidance based on selection
-        if num_opts == 2:
+        if num_opts == 1:
+            st.warning("⚠️ 1 option won't allow comparison. Consider adding at least one alternative path.")
+        elif num_opts == 2:
             st.info("ℹ️ Perfect! 2 options provide clear, focused comparison.")
         elif num_opts == 3:
             st.info("ℹ️ Excellent! 3 options give flexibility with manageable analysis.")
