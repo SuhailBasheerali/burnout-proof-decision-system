@@ -1,5 +1,11 @@
 from fastapi import FastAPI, HTTPException
-from app.schemas import CompareRequest, CompareResponse, OptionEvaluation
+from app.schemas import (
+    CompareRequest, 
+    CompareResponse, 
+    OptionEvaluation,
+    ReflectionRequest,
+    ReflectionResponse
+)
 
 from app.engine.evaluator import normalize_score, composite_score
 from app.engine.classifier import (
@@ -13,6 +19,7 @@ from app.engine.sensitivity import (
     classify_stability,
 )
 from app.engine.comparator import detect_close_competition
+from app.engine.ai_reflector import get_absolem_wisdom
 
 
 app = FastAPI(title="Burnout-Proof Decision Engine")
@@ -81,7 +88,17 @@ def compare(request: CompareRequest):
             normalize_score
         )
 
-        sensitivity_range = round((growth_sens + sust_sens) / 2, 2)
+        # Extract combined sensitivities (worst-case for each dimension)
+        growth_combined = growth_sens['combined_sensitivity']
+        sust_combined = sust_sens['combined_sensitivity']
+        sensitivity_range = round((growth_combined + sust_combined) / 2, 2)
+        
+        # Build comprehensive breakdown
+        sensitivity_breakdown = (
+            f"Growth robustness: {growth_sens['breakdown']} | "
+            f"Sustainability robustness: {sust_sens['breakdown']}"
+        )
+        
         stability = classify_stability(sensitivity_range)
 
         # 8️⃣ Collect Evaluation Result
@@ -98,7 +115,8 @@ def compare(request: CompareRequest):
                 risk_level=risk,
                 triggered_messages=triggers,
                 sensitivity_range=sensitivity_range,
-                stability_level=stability
+                stability_level=stability,
+                sensitivity_breakdown=sensitivity_breakdown
             )
         )
 
@@ -143,3 +161,62 @@ def compare(request: CompareRequest):
         decision_status="CLEAR_WINNER",
         recommendation_reason=f"Highest composite score ({winner.composite_score})."
     )
+
+
+@app.post("/decision/reflect", response_model=ReflectionResponse)
+def reflect(request: ReflectionRequest):
+    """
+    Get Absolem's reflective wisdom on the decision.
+    
+    This endpoint provides:
+    - Cryptic yet insightful advice from Absolem
+    - Burnout prevention action plan
+    - Comparative sustainability analysis
+    
+    Includes mitigation strategies:
+    - Falls back to default wisdom if API unavailable
+    - Caches responses to reduce API calls
+    - Monitors usage statistics
+    """
+    try:
+        # Get Absolem's wisdom using reflection engine
+        wisdom = get_absolem_wisdom(
+            options=request.options,
+            comparison_result=request.comparison_result
+        )
+        
+        return ReflectionResponse(
+            advice=wisdom["advice"],
+            action_plan=wisdom["action_plan"],
+            comparison_insight=wisdom["comparison_insight"],
+            source=wisdom["source"]
+        )
+    
+    except Exception as e:
+        # Fallback to default wisdom on any error
+        from app.engine.ai_reflector import ABSOLEM_FALLBACK_WISDOM
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Reflection error: {e}. Using fallback wisdom.")
+        
+        return ReflectionResponse(
+            advice=ABSOLEM_FALLBACK_WISDOM["advice"],
+            action_plan=ABSOLEM_FALLBACK_WISDOM["action_plan"],
+            comparison_insight=ABSOLEM_FALLBACK_WISDOM["comparison_insight"],
+            source=f"{ABSOLEM_FALLBACK_WISDOM['source']} (error occurred: {str(e)[:50]})"
+        )
+
+
+@app.get("/stats")
+def get_stats():
+    """
+    Get usage statistics for the AI reflection layer.
+    Useful for monitoring API usage and ensuring we stay within free tier limits.
+    """
+    from app.engine.ai_reflector import get_reflector
+    reflector = get_reflector()
+    
+    return {
+        "ai_reflection_stats": reflector.get_usage_stats(),
+        "message": "Monitor these stats to ensure you stay within Gemini's free tier (1500 requests/day)"
+    }

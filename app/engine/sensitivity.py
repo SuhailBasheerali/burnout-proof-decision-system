@@ -11,13 +11,21 @@ def perform_sensitivity_analysis(criteria, normalize_fn):
     - Example: Task importance (weight) estimated correctly, but actual impact (complexity/effect) underestimated
     - Testing both provides holistic robustness assessment
     
-    Thresholds chosen to represent realistic estimation uncertainty:
-    - ±20% weight: Accounts for importance/priority misjudgment
-    - ±15% impact: Accounts for effect/magnitude misjudgment
-    - Returns worst-case variance to be conservative
+    Returns:
+    {
+        'weight_sensitivity': variance from weight perturbations,
+        'impact_sensitivity': variance from impact perturbations,
+        'combined_sensitivity': max of both (worst-case),
+        'breakdown': which dimension is more fragile
+    }
     """
     if not criteria:
-        return 0
+        return {
+            'weight_sensitivity': 0,
+            'impact_sensitivity': 0,
+            'combined_sensitivity': 0,
+            'breakdown': 'N/A'
+        }
 
     # --- WEIGHT PERTURBATIONS (±20%) ---
     # Increase weights by 20% (capped at 10)
@@ -53,24 +61,44 @@ def perform_sensitivity_analysis(criteria, normalize_fn):
     impact_low = normalize_fn(decreased_impact)
     impact_variance = abs(impact_high - impact_low)
     
+    # --- DETERMINE WHICH DIMENSION IS MORE FRAGILE ---
+    if weight_variance > impact_variance:
+        breakdown = f"Importance estimates are less reliable (±{weight_variance:.1f}pts vs ±{impact_variance:.1f}pts)"
+    elif impact_variance > weight_variance:
+        breakdown = f"Effect/impact estimates are less reliable (±{impact_variance:.1f}pts vs ±{weight_variance:.1f}pts)"
+    else:
+        breakdown = f"Both dimensions equally fragile (±{weight_variance:.1f}pts)"
+    
     # --- COMBINED SENSITIVITY ---
     # Return maximum of weight and impact variances to capture worst-case
-    # If decision fails with either weight OR impact perturbations, it's fragile
     combined_variance = max(weight_variance, impact_variance)
     
-    return round(combined_variance, 2)
+    return {
+        'weight_sensitivity': round(weight_variance, 2),
+        'impact_sensitivity': round(impact_variance, 2),
+        'combined_sensitivity': round(combined_variance, 2),
+        'breakdown': breakdown
+    }
 
 
-def classify_stability(sensitivity_range):
+def classify_stability(sensitivity_dict):
     """
     Classifies robustness based on sensitivity range from ±20% perturbations.
     
+    Uses combined_sensitivity (worst-case) for classification:
     - STABLE: variance < 8 (tight, resilient)
     - MODERATELY_STABLE: variance 8-20 (acceptable, normal)
     - FRAGILE: variance >= 20 (high variance, fragile)
     
-    Thresholds adjusted for ±20% perturbations (versus prior ±10%).
+    Args:
+        sensitivity_dict: Dict with 'combined_sensitivity' key or legacy float
     """
+    if isinstance(sensitivity_dict, dict):
+        sensitivity_range = sensitivity_dict.get('combined_sensitivity', 0)
+    else:
+        # Legacy support for float values
+        sensitivity_range = sensitivity_dict
+    
     if sensitivity_range < 8:
         return "STABLE"
     elif sensitivity_range < 20:

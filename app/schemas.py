@@ -75,6 +75,7 @@ class OptionEvaluation(BaseModel):
     triggered_messages: List[str]
     sensitivity_range: float
     stability_level: str
+    sensitivity_breakdown: str = "Sensitivity analysis breakdown"
 
 
 # ----------------------------
@@ -85,3 +86,20 @@ class CompareResponse(BaseModel):
     recommended_option: str
     decision_status: str
     recommendation_reason: str
+
+
+# ----------------------------
+# AI Reflection Request & Response
+# ----------------------------
+class ReflectionRequest(BaseModel):
+    """Request for Absolem's reflective wisdom."""
+    options: List[DecisionOption]
+    comparison_result: dict  # Flexible dict instead of strict CompareResponse
+
+
+class ReflectionResponse(BaseModel):
+    """Absolem's reflective advice with burnout prevention focus."""
+    advice: str
+    action_plan: List[str]
+    comparison_insight: str
+    source: str
