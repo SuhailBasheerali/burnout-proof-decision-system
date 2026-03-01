@@ -98,8 +98,7 @@ class ReflectionRequest(BaseModel):
 
 
 class ReflectionResponse(BaseModel):
-    """Absolem's reflective wisdom with complementary human-factors review."""
-    algorithm_decision: dict  # Contains: recommendation, growth_score, sustainability_score, reasoning
+    """Absolem's philosophical wisdom with action plan for burnout prevention."""
     action_plan: List[str]
-    before_you_decide: dict  # Contains: review_suggestion, focus
+    philosophical_advice: str
     source: str

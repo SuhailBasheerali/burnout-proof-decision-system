@@ -775,35 +775,16 @@ def render_phase_3():
         # Display the wisdom
         reflection = st.session_state.ai_reflection
         
-        # ALGORITHM'S DECISION
+        # ABSOLEM'S PHILOSOPHICAL ADVICE
         with st.container(border=True):
-            st.markdown("#### 🎯 Decision Analysis")
-            
-            ad = reflection.get('algorithm_decision', {})
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("📌 Recommended", ad.get('recommendation', 'Unknown'))
-            with col2:
-                st.metric("📈 Growth", f"{ad.get('growth_score', '?')}/100")
-            with col3:
-                st.metric("🌱 Sustainability", f"{ad.get('sustainability_score', '?')}/100")
-            
-            st.divider()
-            st.write(f"**Why:** {ad.get('reasoning', 'Analysis complete')}")
+            st.markdown("#### 💭 Absolem's Guidance")
+            st.write(reflection.get('philosophical_advice', 'Choose what sustains your spirit.'))
         
         # ACTION PLAN
         with st.container(border=True):
             st.markdown("#### 🛤️ Your Action Plan")
             for action in reflection.get('action_plan', []):
                 st.markdown(f"• {action}")
-        
-        # BEFORE YOU DECIDE - REVIEW SUGGESTION
-        with st.container(border=True):
-            st.markdown("#### 🔮 Before You Finalize Your Decision")
-            byd = reflection.get('before_you_decide', {})
-            st.info(f"💭 **Reflection:\n\n{byd.get('review_suggestion', 'Consider what you might be missing.')}")
-            st.caption(f"**Consider:** {byd.get('focus', 'The human side of this decision')}")
         
         st.divider()
         

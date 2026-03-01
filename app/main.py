@@ -189,13 +189,12 @@ def compare(request: CompareRequest):
 @app.post("/decision/reflect", response_model=ReflectionResponse)
 def reflect(request: ReflectionRequest):
     """
-    Get Absolem's reflective wisdom on the decision.
+    Get Absolem's philosophical wisdom on the decision.
     
     This endpoint provides:
-    - Absolem's review of the algorithm's recommendation
-    - Consideration of human factors and emotions
-    - Burnout prevention action plan
-    - Before-you-decide suggestions based on real-life scenarios
+    - Philosophical advice specific to the decision choice
+    - Burnout prevention guidance
+    - Action plan for sustainable decision implementation
     
     Includes mitigation strategies:
     - Falls back to default wisdom if API unavailable
@@ -210,9 +209,8 @@ def reflect(request: ReflectionRequest):
         )
         
         return ReflectionResponse(
-            algorithm_decision=wisdom.get("algorithm_decision", {}),
             action_plan=wisdom.get("action_plan", []),
-            before_you_decide=wisdom.get("before_you_decide", {}),
+            philosophical_advice=wisdom.get("philosophical_advice", "Choose what sustains your spirit."),
             source=wisdom.get("source", "Unknown")
         )
     
@@ -225,10 +223,9 @@ def reflect(request: ReflectionRequest):
         
         fallback = ABSOLEM_FALLBACK_WISDOM
         return ReflectionResponse(
-            algorithm_decision=fallback.get("algorithm_decision", {}),
             action_plan=fallback.get("action_plan", []),
-            before_you_decide=fallback.get("before_you_decide", {}),
-            source=f"{fallback.get('source', 'Unknown')} (error: {str(e)[:50]})"
+            philosophical_advice=fallback.get("philosophical_advice", "Choose what sustains your spirit."),
+            source=fallback.get("source", "Unknown")
         )
 
 

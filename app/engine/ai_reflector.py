@@ -25,21 +25,12 @@ logger = logging.getLogger(__name__)
 
 # Default Absolem wisdom - used as fallback
 ABSOLEM_FALLBACK_WISDOM = {
-    "algorithm_decision": {
-        "recommendation": "Unable to determine",
-        "growth_score": None,
-        "sustainability_score": None,
-        "reasoning": "Analysis unavailable - rely on your intuition"
-    },
     "action_plan": [
         "1. Pause and reflect on which option feels sustainable",
         "2. Consider your energy levels and support system",
         "3. Choose what allows you to rest without guilt"
     ],
-    "before_you_decide": {
-        "review_suggestion": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
-        "focus": "Trust your emotional intelligence alongside the metrics"
-    },
+    "philosophical_advice": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
     "source": "Absolem's Fallback Wisdom"
 }
 
@@ -206,21 +197,25 @@ class AbsolemReflector:
             logger.warning(f"Cache write failed: {e}")
     
     def _create_prompt(self, options: list, best_option: str, analysis_data: dict) -> str:
-        """Create Absolem-themed prompt for action plan and reflection."""
-        return f"""You are Absolem, a wise guardian helping prevent burnout.
+        """Create Absolem-themed prompt for philosophical advice and action steps."""
+        return f"""You are Absolem, a wise guardian focused on burnout prevention.
 
-Student chooses: '{best_option}' (Growth: {analysis_data.get('growth_score', '?')}/100, Sustainability: {analysis_data.get('sustainability_score', '?')}/100)
+A student is considering: '{best_option}'
 
-Provide two sections:
+Please provide two things:
 
-[REFLECTION]
-Write 2-3 wise sentences on whether this choice prevents burnout and serves their spirit, not just metrics.
+1) 2-3 philosophically rich sentences about this choice. Address: Does this truly prevent burnout? What is the hidden emotional cost? How does this serve their deepest wellbeing?
 
-[ACTION PLAN]
-List 3-4 brief, numbered steps specific to '{best_option}':
-1. [step]
-2. [step]  
-3. [step]
+2) Exactly 3-4 numbered action steps to implement this choice sustainably (brief, practical steps)
+
+Format your response as:
+WISDOM:
+[your philosophical advice here]
+
+STEPS:
+1. [step one]
+2. [step two]
+3. [step three]
 """
     
     def get_reflection(self, options: list, comparison_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -341,54 +336,48 @@ List 3-4 brief, numbered steps specific to '{best_option}':
                 action_plan_text = []
                 
                 try:
-                    # Extract [REFLECTION] section
-                    if "[REFLECTION]" in full_response:
-                        start = full_response.find("[REFLECTION]") + len("[REFLECTION]")
-                        end = full_response.find("[ACTION PLAN]")
+                    advice_text = ""
+                    
+                    # Extract WISDOM: section
+                    if "WISDOM:" in full_response:
+                        start = full_response.find("WISDOM:") + len("WISDOM:")
+                        # Find next section or end of string
+                        end = full_response.find("STEPS:")
                         if end == -1:
                             end = len(full_response)
-                        reflection_text = full_response[start:end].strip()
+                        advice_text = full_response[start:end].strip()
                     
-                    # Extract [ACTION PLAN] section
-                    if "[ACTION PLAN]" in full_response:
-                        start = full_response.find("[ACTION PLAN]") + len("[ACTION PLAN]")
+                    # Extract STEPS: section
+                    if "STEPS:" in full_response:
+                        start = full_response.find("STEPS:") + len("STEPS:")
                         action_text = full_response[start:].strip()
                         # Split by newlines and filter numbered items (1. 2. 3. etc)
                         lines = [line.strip() for line in action_text.split('\n') if line.strip()]
                         action_plan_text = [line for line in lines if line and line[0].isdigit()]
                     
                     # Fallback if parsing failed
-                    if not reflection_text:
-                        reflection_text = full_response
+                    if not advice_text:
+                        advice_text = full_response
                     if not action_plan_text:
                         action_plan_text = [
-                            f"1. Focus on sustaining '{best_option}' with balance",
-                            "2. Check in with yourself weekly on wellbeing",
-                            "3. Adjust if the path doesn't serve your spirit"
+                            f"1. Reflect on whether '{best_option}' truly sustains you",
+                            "2. Build safeguards against burnout",
+                            "3. Trust your growth within limits"
                         ]
                 except Exception as parse_err:
                     logger.warning(f"Response parsing error: {parse_err}. Using fallback.")
-                    reflection_text = full_response
+                    advice_text = full_response
                     action_plan_text = [
-                        f"1. Focus on sustaining '{best_option}' with balance",
-                        "2. Check in with yourself weekly on wellbeing",
-                        "3. Adjust if the path doesn't serve your spirit"
+                        f"1. Reflect on whether '{best_option}' truly sustains you",
+                        "2. Build safeguards against burnout",
+                        "3. Trust your growth within limits"
                     ]
                 
-                # Build response with AI-generated action plan
+                # Build response with philosophical advice and action plan
                 result = {
-                    "algorithm_decision": {
-                        "recommendation": best_option,
-                        "growth_score": analysis_data.get("growth_score"),
-                        "sustainability_score": analysis_data.get("sustainability_score"),
-                        "reasoning": f"Balances growth ({analysis_data.get('growth_score', '?')}/100) with sustainability ({analysis_data.get('sustainability_score', '?')}/100)"
-                    },
                     "action_plan": action_plan_text,
-                    "before_you_decide": {
-                        "review_suggestion": reflection_text,
-                        "focus": "Consider human emotions and real-life scenarios the metrics don't capture"
-                    },
-                    "source": "Decision Engine + Absolem (via Gemini)"
+                    "philosophical_advice": advice_text,
+                    "source": "Absolem's Wisdom (via Gemini)"
                 }
                 
                 # Cache successful response
