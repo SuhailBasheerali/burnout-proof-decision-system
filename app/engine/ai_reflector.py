@@ -252,11 +252,33 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
                 "sustainability_score": None
             }
         elif isinstance(comparison_result, dict):
-            # Dictionary
+            # Dictionary - extract from CompareResponse structure
             best_option = comparison_result.get("recommended_option", "Unknown")
+            
+            # Try to extract scores from evaluations list
+            growth_score = None
+            sust_score = None
+            evaluations = comparison_result.get("evaluations", [])
+            
+            if evaluations:
+                # Find the evaluation that matches the recommended option
+                for eval_item in evaluations:
+                    # Handle both dict and object formats
+                    eval_title = eval_item.get("title") if isinstance(eval_item, dict) else getattr(eval_item, "title", None)
+                    if eval_title == best_option:
+                        growth_score = eval_item.get("growth_score") if isinstance(eval_item, dict) else getattr(eval_item, "growth_score", None)
+                        sust_score = eval_item.get("sustainability_score") if isinstance(eval_item, dict) else getattr(eval_item, "sustainability_score", None)
+                        break
+                
+                # Fallback: use first evaluation if recommended option not found
+                if growth_score is None and evaluations:
+                    first_eval = evaluations[0]
+                    growth_score = first_eval.get("growth_score") if isinstance(first_eval, dict) else getattr(first_eval, "growth_score", None)
+                    sust_score = first_eval.get("sustainability_score") if isinstance(first_eval, dict) else getattr(first_eval, "sustainability_score", None)
+            
             analysis_data = {
-                "growth_score": comparison_result.get("analysis", {}).get("growth_score"),
-                "sustainability_score": comparison_result.get("analysis", {}).get("sustainability_score")
+                "growth_score": growth_score,
+                "sustainability_score": sust_score
             }
         else:
             best_option = "Unknown"
