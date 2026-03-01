@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from app.schemas import (
     CompareRequest, 
