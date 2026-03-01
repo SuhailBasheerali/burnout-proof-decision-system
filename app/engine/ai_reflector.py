@@ -120,7 +120,7 @@ class AbsolemReflector:
         if self.api_key and GEMINI_AVAILABLE:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-2.0-flash")
+                self.model = genai.GenerativeModel("gemini-2.5-flash")
                 self.gemini_available = True
                 logger.info("✨ Gemini API initialized successfully")
             except Exception as e:
