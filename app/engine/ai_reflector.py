@@ -26,11 +26,12 @@ logger = logging.getLogger(__name__)
 # Default Absolem wisdom - used as fallback
 ABSOLEM_FALLBACK_WISDOM = {
     "action_plan": [
-        "1. Pause and reflect on which option feels sustainable",
-        "2. Consider your energy levels and support system",
-        "3. Choose what allows you to rest without guilt"
+        "1. Assess the true cost—time, energy, and emotional toll—not just the rewards",
+        "2. Ask yourself: will this choice allow me to rest, grow, and connect with others?",
+        "3. Choose the path that sustains your wellbeing, not merely your ambition",
+        "4. Set boundaries from day one to protect your peace"
     ],
-    "philosophical_advice": "Patience, young learner. The burden you carry is not the decision itself, but your resistance to choosing. Some options demand the soul's surrender—avoid those. Choose what sustains your spirit, not merely your ambition.",
+    "philosophical_advice": "In every decision lies a choice between growth and burnout. The wisest choice is not the one that promises the most, but the one that keeps your spirit alive. Consider what feeds your soul alongside what feeds your ambition. Some paths demand your surrender—avoid those. Instead, seek the option that allows you to grow while remaining whole, that challenges you while leaving room for rest and genuine human connection.",
     "source": "Absolem's Fallback Wisdom"
 }
 
