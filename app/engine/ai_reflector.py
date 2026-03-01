@@ -3,6 +3,7 @@ AI Reflector Module - Absolem's Wisdom Layer
 Provides burnout prevention advice using Google Gemini API with fallback strategies.
 """
 
+
 import os
 import json
 import hashlib
@@ -42,6 +43,64 @@ ABSOLEM_FALLBACK_WISDOM = {
 # Cache configuration
 CACHE_DIR = Path(__file__).parent.parent.parent / ".ai_cache"
 CACHE_EXPIRY_HOURS = 24
+
+# Daily Rate Limiting Configuration
+# Gemini Free Tier: 15 requests/min, but we recommend lower for smooth operation
+MAX_CALLS_PER_DAY = 50  # About 1-2 calls per user for a 24-50 user base per day
+RATE_LIMIT_PATH = Path(__file__).parent.parent.parent / ".ai_cache" / "rate_limit.json"
+
+def _get_todays_call_count() -> int:
+    """Get number of API calls made today (UTC timezone)."""
+    try:
+        if RATE_LIMIT_PATH.exists():
+            with open(RATE_LIMIT_PATH, 'r') as f:
+                data = json.load(f)
+                # Check if date is today
+                last_date = data.get("date")
+                today = datetime.utcnow().date().isoformat()
+                if last_date == today:
+                    return data.get("count", 0)
+    except Exception as e:
+        logger.warning(f"Could not read rate limit data: {e}")
+    return 0
+
+def _increment_daily_call_count():
+    """Increment today's API call counter."""
+    try:
+        RATE_LIMIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        today = datetime.utcnow().date().isoformat()
+        count = _get_todays_call_count()
+        
+        # If it's a new day, reset counter
+        if RATE_LIMIT_PATH.exists():
+            with open(RATE_LIMIT_PATH, 'r') as f:
+                data = json.load(f)
+            if data.get("date") != today:
+                count = 0
+        
+        with open(RATE_LIMIT_PATH, 'w') as f:
+            json.dump({
+                "date": today,
+                "count": count + 1,
+                "timestamp": datetime.utcnow().isoformat()
+            }, f)
+    except Exception as e:
+        logger.warning(f"Could not update rate limit counter: {e}")
+
+def _check_daily_limit() -> tuple[bool, str]:
+    """
+    Check if daily API call limit has been exceeded.
+    Returns (is_allowed, message)
+    """
+    current_calls = _get_todays_call_count()
+    remaining = MAX_CALLS_PER_DAY - current_calls
+    
+    if remaining <= 0:
+        return False, f"Daily API limit reached ({MAX_CALLS_PER_DAY} calls). Using fallback wisdom. Try again tomorrow."
+    elif remaining <= 5:
+        return True, f"⚠️  WARNING: {remaining} API calls remaining today (limit: {MAX_CALLS_PER_DAY})"
+    else:
+        return True, f"API calls available: {remaining}/{MAX_CALLS_PER_DAY}"
 
 
 class AbsolemReflector:
@@ -203,6 +262,15 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
         
         # Try Gemini API
         if self.gemini_available:
+            # Check daily rate limit before making API call
+            limit_ok, limit_msg = _check_daily_limit()
+            logger.info(limit_msg)
+            
+            if not limit_ok:
+                # Daily limit exceeded - use fallback wisdom
+                logger.warning(f"🛑 {limit_msg}")
+                return ABSOLEM_FALLBACK_WISDOM
+            
             try:
                 prompt = self._create_prompt(options, best_option, analysis_data)
                 response = self.model.generate_content(
@@ -218,6 +286,9 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
                         }
                     ]
                 )
+                
+                # Increment daily call counter after successful API call
+                _increment_daily_call_count()
                 
                 wisdom_text = response.text.strip()
                 
@@ -262,6 +333,46 @@ Be cryptic but wise. Help them question whether this choice truly serves their s
             "cache_enabled": True,
             "fallback_available": True,
             "timestamp": datetime.now().isoformat()
+        }
+    
+    def get_daily_limits_info(self) -> Dict[str, Any]:
+        """
+        Get current daily API call limit status.
+        Useful for frontend display or monitoring.
+        
+        Returns:
+            {
+                "max_calls_per_day": 50,
+                "calls_used_today": 3,
+                "calls_remaining": 47,
+                "percentage_used": 6,
+                "reset_time": "2026-03-02T00:00:00Z",
+                "status": "OK" | "WARNING" | "EXCEEDED"
+            }
+        """
+        current_calls = _get_todays_call_count()
+        remaining = MAX_CALLS_PER_DAY - current_calls
+        percentage = int((current_calls / MAX_CALLS_PER_DAY) * 100)
+        
+        # Determine status
+        if remaining <= 0:
+            status = "EXCEEDED"
+        elif remaining <= 5:
+            status = "WARNING"
+        else:
+            status = "OK"
+        
+        # Calculate next reset time (tomorrow at 00:00 UTC)
+        tomorrow = (datetime.utcnow() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        return {
+            "max_calls_per_day": MAX_CALLS_PER_DAY,
+            "calls_used_today": current_calls,
+            "calls_remaining": max(0, remaining),
+            "percentage_used": percentage,
+            "reset_time": tomorrow.isoformat() + "Z",
+            "status": status,
+            "gemini_available": self.gemini_available
         }
 
 
