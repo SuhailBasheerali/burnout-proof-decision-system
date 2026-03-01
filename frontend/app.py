@@ -496,9 +496,10 @@ def render_phase_3():
     
     st.markdown("""
     <div class="title-section">
-        <h1>📊 Academic Decision Analysis Results</h1>
+        <h1> Decision Analysis </h1>
     </div>
     """, unsafe_allow_html=True)
+    
     
     # ═══════════════════════════════════════════════════════════════════════════
     # RECOMMENDATION CARD - HANDLES ALL SCENARIOS
@@ -737,7 +738,7 @@ def render_phase_3():
     # ABSOLEM'S REFLECTIVE WISDOM LAYER
     # ═══════════════════════════════════════════════════════════════════════════
     
-    st.markdown("### 🦋 Absolem's Reflective Wisdom")
+    st.markdown("### Ask Absolem")
     st.markdown("*Get philosophical guidance on burnout prevention*")
     
     # Check if we already have a reflection cached
