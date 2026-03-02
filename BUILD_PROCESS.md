@@ -1,4 +1,4 @@
-# 🏗️ BUILD_PROCESS.md: The Evolution of the Burnout-Proof Decision System
+# 🏗️ BUILD_PROCESS.md: The Evolution of the Academic Burnout-Proof Decision System
 
 **A detailed chronicle of how this system was conceived, designed, refactored, and evolved into its current form.**
 
