@@ -41,7 +41,7 @@ CACHE_EXPIRY_HOURS = 24
 
 # Daily Rate Limiting Configuration
 # Gemini Free Tier: 15 requests/min, but we recommend lower for smooth operation
-MAX_CALLS_PER_DAY = 50  # About 1-2 calls per user for a 24-50 user base per day
+MAX_CALLS_PER_DAY = 100  # Increased to support more API calls while staying well below Gemini's 1500/day limit
 RATE_LIMIT_PATH = Path(__file__).parent.parent.parent / ".ai_cache" / "rate_limit.json"
 
 def _get_todays_call_count() -> int:
