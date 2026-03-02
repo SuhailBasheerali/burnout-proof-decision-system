@@ -9,15 +9,16 @@
 1. [Problem Statement & Motivation](#problem-statement--motivation)
 2. [Conceptual Interpretation](#conceptual-interpretation)
 3. [System Architecture](#system-architecture)
-4. [Design Principles](#design-principles)
-5. [Design Decisions & Rationale](#design-decisions--rationale)
-6. [Mathematical Foundations](#mathematical-foundations)
-7. [Assumptions Made](#assumptions-made)
-8. [Edge Cases & Handling](#edge-cases--handling)
-9. [How to Run the Project](#how-to-run-the-project)
-10. [Project Structure](#project-structure)
-11. [Future Improvements](#future-improvements)
-12. [Technical Stack](#technical-stack)
+4. [Design Diagrams](#design-diagrams)
+5. [Design Principles](#design-principles)
+6. [Design Decisions & Rationale](#design-decisions--rationale)
+7. [Mathematical Foundations](#mathematical-foundations)
+8. [Assumptions Made](#assumptions-made)
+9. [Edge Cases & Handling](#edge-cases--handling)
+10. [How to Run the Project](#how-to-run-the-project)
+11. [Project Structure](#project-structure)
+12. [Future Improvements](#future-improvements)
+13. [Technical Stack](#technical-stack)
 
 ---
 
@@ -129,6 +130,22 @@ TIER 3: FRONTEND (Streamlit)
 
 ---
 
+## 📊 Design Diagrams
+
+### System Architecture Diagram
+![System Architecture](attachments/diagrams/architecture-diagram.png)
+
+### Component Architecture Diagram
+![Component Architecture](attachments/diagrams/component-diagram.png)
+
+### Data Flow Diagram
+![Data Flow](attachments/diagrams/data_flow_diagram.png)
+
+### Decision Logic Diagram
+![Decision Logic](attachments/diagrams/decision-logic-diagram.png)
+
+---
+
 ## 🎓 Design Principles
 
 ### 1. **Deterministic > Probabilistic**
@@ -170,7 +187,7 @@ Thresholds adjust based on decision stability (from sensitivity analysis):
 
 ## ⚙️ Design Decisions & Rationale
 
-### Decision 1: Weighted Normalization Over Absolute Scores
+### Decision Details
 **Choice:** Allow users to define criteria weights, then normalize each option's performance on each criterion
 **Why:** 
 - Different users care about different things
