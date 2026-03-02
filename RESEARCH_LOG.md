@@ -47,8 +47,7 @@
 - Will it generate any cost in future after hosting for free in Hugging Face after API validation
 - How can we create a live demo for recruiter without hosting
 - Is it possible to host this backend in Streamlit Cloud
-- Which has high impact for a recruiter
-
+  
 ### Documentation & Refactoring
 - Create a .docx in docs about refactoring from previous mathematical model to present system design
 - Just create on the basis of what changes you have made to previous mathematical model to arrive into new version
@@ -58,10 +57,9 @@
 
 #### README.md
 - Create a comprehensive README for the project
-- What should be the primary user-facing documentation structure
 - How to explain the burnout-proof decision system to recruiters and users
 - Include system problem statement and conceptual interpretation
-- Add system architecture explanation with visual diagrams
+- Add system architecture explanation 
 - How to structure the use case examples section
 - Create sections for quick start, features, and deployment instructions
 - Make it accessible for both technical and non-technical audiences
@@ -72,7 +70,7 @@
 - Document the design evolution and build journey
 - Explain the changes from the previous mathematical model to the current system design
 - Create a chronicle of architectural decisions and their rationale
-- Document the 6 major development phases and key insights
+- Document the major development phases and key insights
 - Include sections for normalization choices, alternatives considered, and refactoring decisions
 - Explain mistakes made and how they were corrected
 - Document lessons learned throughout the development process
@@ -93,7 +91,7 @@
 
 ### Frontend Development
 - Create a creative Streamlit frontend... responsive design... avoid complexity
-- Make the frontend more creative (led to zone classifications, persona voices, risk meters, storytelling)
+- Make the frontend more creative.
 - Change terminology to critical/realistic (refining sustainability assessment)
 - Replace TIME_BOX with Sprint Mode display name
 - Remove multiple criteria - simplify to one factor per type
@@ -153,9 +151,6 @@
 - Does the risk analysis accurately represent the decision uncertainty
 - Are the recommendations actionable and specific
 - Does fallback wisdom maintain substantive value when API is unavailable
-
-
-- Test multi-device access without authentication or session management
 
 #### Integration Testing
 - Verify frontend can handle all possible backend response formats
