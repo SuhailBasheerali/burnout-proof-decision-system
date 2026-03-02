@@ -15,10 +15,9 @@
 7. [Assumptions Made](#assumptions-made)
 8. [Edge Cases & Handling](#edge-cases--handling)
 9. [How to Run the Project](#how-to-run-the-project)
-10. [API Documentation](#api-documentation)
-11. [Project Structure](#project-structure)
-12. [Future Improvements](#future-improvements)
-13. [Technical Stack](#technical-stack)
+10. [Project Structure](#project-structure)
+11. [Future Improvements](#future-improvements)
+12. [Technical Stack](#technical-stack)
 
 ---
 
@@ -91,7 +90,7 @@ TIER 1: DETERMINISTIC CORE (100% AI-Free) ✅
   │  ├─ Tension detection (growth vs. sustainability imbalance)
   │  ├─ Risk assessment (6 risk levels including burnout pathways)
   │  ├─ Sensitivity analysis (±20% weight perturbations)
-  │  └─ Stability grading (STABLE → BRITTLE)
+  │  └─ Stability grading (STABLE → MODERATELY_STABLE → FRAGILE)
   │
   └─ Comparison Logic (8-step pipeline)
      ├─ Input validation
@@ -326,10 +325,19 @@ stability:
 - Treatment: Validate weights sum >0, normalize, but don't question rationale
 - Risk: Garbage in = garbage out (mitigated by sensitivity analysis showing critical criteria)
 
-### 2. **Criteria Scores Are Comparable**
-- Assumption: A 70 in "growth" means same thing as 70 in "sustainability"
-- Treatment: Both normalized to 0-100 scale before combination
-- Risk: Some criteria may have different natural ranges (mitigated by documentation)
+### 2. **Criteria Scores Are Comparable (After Normalization)**
+- **Assumption**: After normalization, scores from different criteria dimensions are structurally comparable and can be arithmetically combined
+- **Rationale**: Both growth and sustainability criteria go through identical `normalize_score()` function:
+  - Formula: `(∑ weight_i × impact_i) / (∑ weight_i) × 10` 
+  - Both scaled to 0-100 range
+  - Weighted by user-specified importance
+- **Semantic caveat**: A 70 in "growth" and 70 in "sustainability" use the same numerical scale but represent different concepts
+- **Mitigation**: 
+  - Sensitivity analysis tests robustness to ±20% weight changes, revealing if one dimension dominates
+  - `breakdown` field shows which dimension is more fragile ("weights less reliable" vs. "impacts less reliable")
+  - Users assign weights explicitly, accounting for domain-specific value differences
+  - Tension index (|growth - sustainability|) makes imbalances transparent
+- **Remaining risk**: Domain-specific criteria may have inherently different variance ranges (e.g., "salary" may naturally vary 10-90, while "culture fit" varies 30-70), but this is mitigated by user-defined weights encoding their preferences
 
 ### 3. **Options Are Stable (Not Changing)**
 - Assumption: Option characteristics don't change mid-evaluation
@@ -387,7 +395,7 @@ decision_status = "ALL_OPTIONS_POOR_FIT"
 **Handling:**
 ```
 decision_status = "CLOSE_COMPETITION"
-→ Stability: Show how sensitive this is (FRAGILE? BRITTLE?)
+→ Stability: Show how sensitive this is (STABLE/MODERATELY_STABLE/FRAGILE?)
 → Advice: "Neither is clearly better. Consider soft factors."
 → Trigger: "This is a genuinely difficult choice."
 ```
@@ -402,10 +410,10 @@ Prevents: Undefined scores
 ```
 
 ### Edge Case 5: FRAGILE Decision (High Sensitivity Variance)
-**Scenario:** Sensitivity analysis shows >30% variance across perturbations
+**Scenario:** Sensitivity analysis shows ≥20% variance across perturbations
 **Handling:**
 ```
-stability_level = "BRITTLE"
+stability_level = "FRAGILE"
 → Threshold adjusted from ±5 to ±12 points for "clear winner"
 → Trigger: "This decision is fragile. Check critical factors."
 → Advice: Show which criteria cause variance
@@ -435,16 +443,21 @@ User: Sees complete response, no awareness of quota
 ```
 
 ### Edge Case 8: Floating-Point Precision
-**Scenario:** Weights don't sum to exactly 1.0 (due to rounding)
+**Scenario:** Weights don't sum to exactly 1.0 (due to rounding), or FP arithmetic causes cumulative errors
 **Handling:**
 ```
 total_weight = sum(weights)
-if total_weight ≈ 0:
+if total_weight == 0:
     return 0 (avoid division by zero)
 else:
-    normalized_score = (sum(weight×impact) / total_weight) × 10
-Result: Robust handling of FP arithmetic
+    weighted_avg = (sum(weight×impact)) / total_weight
+    normalized_score = round(weighted_avg × 10, 2)
+Result: Robust FP handling via rounding to 2 decimal places
 ```
+**Why this works:**
+- Exact equality check (`== 0`) catches zero-division edge case
+- Rounding to 2 decimals prevents FP cumulation errors (e.g., 0.1 + 0.2 ≠ 0.3 in binary FP)
+- All scores normalized to 2-decimal precision ensures consistent arithmetic
 
 ---
 
@@ -504,124 +517,7 @@ streamlit run frontend/app.py
 # Terminal 1
 python -m uvicorn app.main:app --reload
 
-# Terminal 2
 streamlit run frontend/app.py
-```
-
-### Quick Test
-
-**Test the API via curl:**
-```bash
-curl -X POST "http://localhost:8000/decision/compare" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "options": [
-      {
-        "name": "Laptop A",
-        "criteria_evaluations": [
-          {"name": "Performance", "score": 90, "weight": 0.5},
-          {"name": "Battery Life", "score": 40, "weight": 0.3},
-          {"name": "Price", "score": 50, "weight": 0.2}
-        ]
-      }
-    ]
-  }'
-```
-
-**Test via Python:**
-```python
-import requests
-import json
-
-response = requests.post(
-    "http://localhost:8000/decision/compare",
-    json={
-        "options": [
-            {
-                "name": "Option 1",
-                "criteria_evaluations": [
-                    {"name": "Growth", "score": 75, "weight": 0.6},
-                    {"name": "Sustainability", "score": 65, "weight": 0.4}
-                ]
-            }
-        ]
-    }
-)
-
-print(json.dumps(response.json(), indent=2))
-```
-
----
-
-## 📡 API Documentation
-
-### Endpoint 1: `/decision/compare` (POST)
-**Purpose:** Evaluate options and get ranked recommendations
-
-**Request Body:**
-```json
-{
-  "options": [
-    {
-      "name": "Option Name",
-      "criteria_evaluations": [
-        {
-          "name": "Criterion Name",
-          "score": 75,
-          "weight": 0.5,
-          "impact": 0.8
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "decision_status": "CLEAR_WINNER",
-  "recommended_option": "Option 1",
-  "recommendation_reason": "Option 1 has highest composite score (75.2) with 12-point margin...",
-  "evaluations": [
-    {
-      "name": "Option 1",
-      "growth_score": 75,
-      "sustainability_score": 65,
-      "composite_score": 68.5,
-      "zone": "EXECUTE_FULLY",
-      "tension_index": 10,
-      "risk_level": "STRUCTURALLY_STABLE",
-      "stability_level": "STABLE",
-      "triggered_messages": ["High growth potential"]
-    }
-  ],
-  "comparison_insights": {
-    "decision_confidence": 0.92,
-    "zone_distribution": {...},
-    "risk_patterns": {...}
-  }
-}
-```
-
-### Endpoint 2: `/decision/reflect` (POST)
-**Purpose:** Get optional AI wisdom (with 4-layer fallback)
-
-**Request Body:**
-```json
-{
-  "decision_context": "Comparing laptop options",
-  "evaluation_summary": "Option A has more performance, Option B more balanced"
-}
-```
-
-**Response:**
-```json
-{
-  "wisdom": "Wisdom text from cache/Gemini/fallback",
-  "source": "CACHE" | "GEMINI_API" | "FALLBACK_WISDOM",
-  "confidence": 0.95
-}
 ```
 
 ---
@@ -653,22 +549,16 @@ Burnout_proof_system/
 ├── frontend/
 │   ├── __init__.py
 │   ├── app.py                         # Streamlit interactive dashboard
-│   └── README.md                      # Frontend-specific docs
+│   └── .streamlit/
+│       └── config.toml                # Streamlit configuration
 │
-├── tests/
-│   ├── test_engine_logic.py           # Core evaluation tests
-│   ├── test_api.py                    # API endpoint tests
-│   ├── test_edge_cases.py             # Edge case validation
-│   ├── test_validation.py             # Input validation tests
-│   ├── test_ai_reflection.py          # AI layer tests
-│   └── __pycache__/
-│
-└── docs/
-    ├── TECHNICAL_ARCHITECTURE.md      # Detailed technical specs
-    ├── 01_API_DOCUMENTATION.md        # API reference
-    ├── 03_SYSTEM_ARCHITECTURE.md      # System design
-    ├── 04_DECISION_FRAMEWORK_GUIDE.md # Decision logic explained
-    └── ... (15+ additional docs)
+└── tests/
+    ├── test_engine_logic.py           # Core evaluation tests
+    ├── test_api.py                    # API endpoint tests
+    ├── test_edge_cases.py             # Edge case validation
+    ├── test_validation.py             # Input validation tests
+    ├── test_ai_reflection.py          # AI layer tests
+    └── __pycache__/
 ```
 
 ---
@@ -682,24 +572,19 @@ Burnout_proof_system/
    - Provide personalized nudges ("You tend to underestimate sustainability")
    - Machine learning: Predict which decisions will satisfy user
 
-2. **Better Input UX**
-   - Auto-complete criteria from templates (laptop, job hire, travel, etc.)
-   - Drag-and-drop for visual weight adjustment
-   - Real-time scoring feedback as user types
-
-3. **Expanded Test Coverage**
+2. **Expanded Test Coverage**
    - Currently at ~70% coverage
    - Target: 90%+ coverage with integration tests
    - Add stress tests for large option sets (100+)
 
-### Medium-term (1 month)
-4. **AI-Assisted Decision Extraction**
+### Medium-term 
+3. **AI-Assisted Decision Extraction**
    - User gives title: "Should I take this job offer?"
    - AI extracts likely criteria and scores
    - Deterministic engine evaluates, AI provides context
    - Keeps core logic AI-free, augments input
 
-5. **Mental Health Awareness**
+4. **Mental Health Awareness**
    - Sentiment analysis on decision context
    - Detect burnout signals in option descriptions
    - Nudge: "This sounds rushed. Sleep on it?"
@@ -711,30 +596,7 @@ Burnout_proof_system/
    - Consensus scoring (if groups align)
    - See where team disagrees
 
-### Long-term (3+ months)
-7. **Outcome Tracking & Learning**
-   - User implements recommendation, logs result
-   - Compare predicted score vs. actual satisfaction
-   - Refine evaluation model based on outcomes
-   - "Your scores would have predicted this" → Trust building
 
-8. **Domain-Specific Models**
-   - Job decisions (salary, growth, culture fit)
-   - Investment decisions (risk tolerance matters)
-   - Career pivots (long-term sustainability)
-   - Templatized criteria + guidance per domain
-
-9. **Export & Reporting**
-   - PDF decision reports
-   - Timeline: When did you consider this?
-   - Sensitivity heatmaps
-   - share decision rationale with stakeholders (job rejections, team choices)
-
-10. **Mobile & Offline**
-    - Mobile app (React Native)
-    - Offline capability (sync when online)
-    - Voice input: Describe options verbally
-    - Dark mode for late-night decision panicking
 
 ---
 
@@ -779,16 +641,7 @@ This system embodies that philosophy: **Explicit > Implicit, Transparent > Cleve
 
 ---
 
-## 📧 Contact & Questions
-
-For questions about the design, implementation, or philosophy behind this system, refer to:
-- `/docs/TECHNICAL_ARCHITECTURE.md` — Technical deep-dive
-- `/docs/04_DECISION_FRAMEWORK_GUIDE.md` — Decision logic explained
-- `/docs/06_MODEL_IMPROVEMENTS.md` — Evolution of the approach
-- `/docs/09_REFACTORING_EVOLUTION.md` — Design iterations
-
----
 
 **Version:** 1.0.0  
 **Last Updated:** March 2, 2026  
-**Status:** Production-ready with academic foundations
+

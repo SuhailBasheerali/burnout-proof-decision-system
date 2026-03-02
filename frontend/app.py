@@ -535,8 +535,21 @@ def render_phase_3():
         
         st.warning("💡 **Decision Guidance:**\n- Choose based on personal preference, time availability, or team fit\n- Both options are academically sound\n- Review detailed breakdowns below to help decide")
     
+    elif decision_status == "ALL_OPTIONS_POOR_FIT":
+        # Scenario 2: No Viable Option - All below threshold
+        st.markdown("### ❌ NO VIABLE OPTIONS")
+        st.error(
+            "**All options score below the viability threshold (40/100).**\n\n"
+            "None of these options are structurally sound as-is. This suggests your problem needs redesign, not just better execution.\n\n"
+            "**Consider:**\n"
+            "- Are your criteria too strict? (Unrealistic expectations)\n"
+            "- Do better options exist outside this set?\n"
+            "- Should you reframe the decision entirely?\n"
+            "- Do your weights align with your actual priorities?"
+        )
+    
     else:
-        # Scenario 2: Clear Winner or Single Option
+        # Scenario 3: Clear Winner or Single Option
         recommended_eval = next((e for e in evaluations if e["title"] == recommended), None)
         
         if recommended_eval:
@@ -565,7 +578,7 @@ def render_phase_3():
                 st.markdown(f"<div style='text-align: center; font-size: 3em;'>{zone_emoji}</div>", unsafe_allow_html=True)
                 st.markdown(f"<div style='text-align: center; font-weight: bold;'>{zone}</div>", unsafe_allow_html=True)
             
-            # Scenario 3: Highlight if top option is fragile
+            # Scenario 4: Highlight if top option is fragile
             if recommended_eval['stability_level'] == "FRAGILE":
                 st.warning("⚠️ **FRAGILE DECISION:** High sensitivity detected. Scores may vary with slight changes.\nConsider reviewing alternatives or validating your ratings.")
     

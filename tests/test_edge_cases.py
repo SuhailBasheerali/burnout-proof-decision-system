@@ -488,6 +488,190 @@ class TestMetricEdgeCases:
         assert max_scores > min_scores
 
 
+class TestAllOptionsPoorfitScenarios:
+    """Test ALL_OPTIONS_POOR_FIT detection when no viable options exist"""
+
+    def test_all_options_poor_fit(self):
+        """All options with composite score < 40 triggers ALL_OPTIONS_POOR_FIT"""
+        payload = {
+            "options": [
+                {
+                    "title": "Poor Option A",
+                    "growth_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 2}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                },
+                {
+                    "title": "Poor Option B",
+                    "growth_criteria": [
+                        {"weight": 3.0, "impact": 2},
+                        {"weight": 1.0, "impact": 1}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 2.0, "impact": 2},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                },
+                {
+                    "title": "Poor Option C",
+                    "growth_criteria": [
+                        {"weight": 2.0, "impact": 2},
+                        {"weight": 1.0, "impact": 1}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 1.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BASE_URL}/decision/compare", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Core assertions
+        assert data["decision_status"] == "ALL_OPTIONS_POOR_FIT"
+        assert data["recommended_option"] == "NONE_VIABLE"
+        
+        # Verify all options are evaluated
+        assert len(data["evaluations"]) == 3
+        
+        # Verify ALL have scores below 40
+        for eval_result in data["evaluations"]:
+            assert eval_result["composite_score"] < 40, \
+                f"Option {eval_result['title']} has score {eval_result['composite_score']} (should be < 40)"
+        
+        # Verify options are still sorted by score
+        scores = [e["composite_score"] for e in data["evaluations"]]
+        assert scores == sorted(scores, reverse=True), "Options should be ranked by composite score"
+        
+        # Verify reasoning explains the situation
+        assert "viability" in data["recommendation_reason"].lower()
+        assert "redesign" in data["recommendation_reason"].lower()
+
+    def test_all_options_just_below_threshold(self):
+        """Edge case: options at threshold boundary (< 40)"""
+        payload = {
+            "options": [
+                {
+                    "title": "Just Below 40 - Option 1",
+                    "growth_criteria": [
+                        {"weight": 5.0, "impact": 3},
+                        {"weight": 2.0, "impact": 2}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 4.0, "impact": 2},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                },
+                {
+                    "title": "Just Below 40 - Option 2",
+                    "growth_criteria": [
+                        {"weight": 5.0, "impact": 2},
+                        {"weight": 1.0, "impact": 1}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 4.0, "impact": 3},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BASE_URL}/decision/compare", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Should still detect ALL_OPTIONS_POOR_FIT if all below 40
+        if all(e["composite_score"] < 40 for e in data["evaluations"]):
+            assert data["decision_status"] == "ALL_OPTIONS_POOR_FIT"
+            assert data["recommended_option"] == "NONE_VIABLE"
+
+    def test_one_option_above_threshold_prevents_poor_fit(self):
+        """ONE option above 40 prevents ALL_OPTIONS_POOR_FIT classification"""
+        payload = {
+            "options": [
+                {
+                    "title": "Good Option",
+                    "growth_criteria": [
+                        {"weight": 7.0, "impact": 5},
+                        {"weight": 3.0, "impact": 4}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 6.0, "impact": 5},
+                        {"weight": 2.0, "impact": 3}
+                    ]
+                },
+                {
+                    "title": "Poor Option",
+                    "growth_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BASE_URL}/decision/compare", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Should be CLEAR_WINNER, not ALL_OPTIONS_POOR_FIT
+        assert data["decision_status"] == "CLEAR_WINNER"
+        assert data["recommended_option"] == "Good Option"
+
+    def test_all_poor_fit_priority_over_close_competition(self):
+        """Test that ALL_OPTIONS_POOR_FIT takes priority (runs before CLOSE_COMPETITION check)"""
+        payload = {
+            "options": [
+                {
+                    "title": "Poor Option A",
+                    "growth_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                },
+                {
+                    "title": "Poor Option B",
+                    "growth_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ],
+                    "sustainability_criteria": [
+                        {"weight": 2.0, "impact": 1},
+                        {"weight": 1.0, "impact": 1}
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BASE_URL}/decision/compare", json=payload)
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Should be ALL_OPTIONS_POOR_FIT (takes priority), not CLOSE_COMPETITION
+        assert data["decision_status"] == "ALL_OPTIONS_POOR_FIT"
+        assert data["recommended_option"] == "NONE_VIABLE"
+
+
 # Integration test to verify all gap coverage
 class TestGapAnalysisCoverage:
     """Verify that all gap analysis items are covered"""

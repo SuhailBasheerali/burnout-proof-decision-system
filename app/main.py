@@ -168,6 +168,16 @@ def compare(request: CompareRequest):
     # --------------------------------------------------
     # Multi-Option Mode
     # --------------------------------------------------
+    # Check if all options are below viability threshold (40) FIRST
+    # This is more critical than CLOSE_COMPETITION
+    if all(opt.composite_score < 40 for opt in sorted_options):
+        return CompareResponse(
+            evaluations=sorted_options,
+            recommended_option="NONE_VIABLE",
+            decision_status="ALL_OPTIONS_POOR_FIT",
+            recommendation_reason="All options score below viability threshold (40). No viable option exists—consider redesigning the problem."
+        )
+
     if detect_close_competition(sorted_options):
         return CompareResponse(
             evaluations=sorted_options,
