@@ -142,7 +142,7 @@ TIER 3: FRONTEND (Streamlit)
 ![Data Flow](attachments/diagrams/data_flow_diagram.png)
 
 ### Decision Logic Diagram
-![Decision Logic](attachments/diagrams/decision-logic-diagram.png)
+![Decision Logic](attachments/diagrams/Decision-logic-diagram.png)
 
 ---
 
