@@ -56,7 +56,7 @@ class DecisionOption(BaseModel):
 # Multi-Option Request Model
 # ----------------------------
 class CompareRequest(BaseModel):
-    options: List[DecisionOption] = Field(..., min_length=1, max_length=10)
+    options: List[DecisionOption] = Field(..., min_length=1, max_length=5)
 
 
 # ----------------------------
