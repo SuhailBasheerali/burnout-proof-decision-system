@@ -57,7 +57,6 @@ From my understanding, this assignment evaluates:
 
 ### NOT Testing
 ❌ ML expertise or fancy AI models
-❌ Polished UI (though one was built)
 ❌ Hardcoded decision rules
 ❌ Fully automated decision-making
 
@@ -161,10 +160,12 @@ The composite score formula ensures:
 - Prevents the system from recommending obviously unsustainable choices
 
 ### 5. **Context-Aware Thresholds**
-Thresholds adjust based on decision stability:
-- **STABLE scores**: ±5 point margin = clear winner
-- **FRAGILE scores**: ±12 point margin = clear winner
-- Prevents overconfident decisions on shaky foundations
+Thresholds adjust based on decision stability (from sensitivity analysis):
+- **STABLE scores** (<8% variance): ±5 point margin = clear winner
+- **Mixed stability** (one STABLE, one MODERATELY_STABLE): ±8 point margin
+- **MODERATELY_STABLE or both** (8-20% variance): ±8 point margin
+- **FRAGILE scores** (≥20% variance): ±12 point margin = requires higher confidence
+- Prevents overconfident decisions on shaky foundations by raising thresholds for uncertain evaluations
 
 ---
 
@@ -221,13 +222,15 @@ Risk Levels:
 - Users can mitigate specific risks differently
 - Enables targeted guidance via triggers
 
-### Decision 5: Sensitivity Analysis via Weight Perturbations
-**Choice:** Vary criteria weights ±20%, measure score variance
+### Decision 5: Sensitivity Analysis via Weight & Impact Perturbations
+**Choice:** Vary criteria weights ±20% AND impacts ±15%, measure worst-case score variance
 **Why:**
 - Shows which criteria are "critical" vs. "cosmetic"
+- Tests both importance estimates AND effect magnitude estimates
 - Quantifies decision confidence without being overconfident
 - Identifies fragile decisions (depend on 1-2 criteria)
-- Stability grading (STABLE/FRAGILE/BRITTLE) based on variance
+- Stability grading (STABLE/MODERATELY_STABLE/FRAGILE) based on variance
+- Uses combined sensitivity (worst-case) for most conservative assessment
 
 ### Decision 6: Multi-Level Decision Status Classification
 **Choice:** Don't just rank—classify the *decision type*
@@ -306,12 +309,12 @@ severity:
 
 ### Sensitivity Range (%)
 ```
-variation = (max_score - min_score) / base_score × 100
+variation = max(weight_variance, impact_variance) from ±20% weight & ±15% impact perturbations
 
 stability:
-  variation < 15%  → STABLE     (robust to parameter changes)
-  variation 15-30% → FRAGILE    (some critical factors)
-  variation > 30%  → BRITTLE    (highly dependent on assumptions)
+  variation < 8%   → STABLE              (robust to parameter changes)
+  variation 8-20%  → MODERATELY_STABLE   (some critical factors, acceptable)
+  variation >= 20% → FRAGILE             (highly dependent on assumptions)
 ```
 
 ---
