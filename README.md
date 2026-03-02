@@ -1,4 +1,4 @@
-# 🧠 Burnout-Proof Decision Companion System
+# 🧠Academic Burnout-Proof Decision Companion System
 
 **A deterministic, explainable decision support system designed to help users make better choices while recognizing cognitive fatigue and decision quality trade-offs.**
 
