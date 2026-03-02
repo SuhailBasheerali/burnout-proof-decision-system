@@ -133,16 +133,16 @@ TIER 3: FRONTEND (Streamlit)
 ## 📊 Design Diagrams
 
 ### System Architecture Diagram
-![System Architecture](attachments/diagrams/architecture-diagram.png)
+<img width="600" src="attachments/diagrams/architecture-diagram.png">
 
 ### Component Architecture Diagram
-![Component Architecture](attachments/diagrams/component-diagram.png)
+<img width="600" src="attachments/diagrams/component-diagram.png">
 
 ### Data Flow Diagram
-![Data Flow](attachments/diagrams/data_flow_diagram.png)
+<img width="600" src="attachments/diagrams/data_flow_diagram.png">
 
 ### Decision Logic Diagram
-![Decision Logic](attachments/diagrams/Decision-logic-diagram.png)
+<img width="600" src="attachments/diagrams/Decision-logic-diagram.png">
 
 ---
 
