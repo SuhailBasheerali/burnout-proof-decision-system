@@ -3,17 +3,14 @@ AI Reflector Module - Absolem's Wisdom Layer
 Provides burnout prevention advice using Google Gemini API with fallback strategies.
 """
 
-from dotenv import load_dotenv
-load_dotenv()  # Load .env file immediately on module import
-
-import os
 import json
 import hashlib
 import logging
 import time
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
-from pathlib import Path
+
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +45,13 @@ ABSOLEM_FALLBACK_WISDOM = {
 }
 
 # Cache configuration
-CACHE_DIR = Path(__file__).parent.parent.parent / ".ai_cache"
-CACHE_EXPIRY_HOURS = 24
+CACHE_DIR = settings.ai_cache_dir
+CACHE_EXPIRY_HOURS = settings.ai_cache_expiry_hours
 
 # Daily Rate Limiting Configuration
 # Gemini Free Tier: 15 requests/min, but we recommend lower for smooth operation
-MAX_CALLS_PER_DAY = 100  # Increased to support more API calls while staying well below Gemini's 1500/day limit
-RATE_LIMIT_PATH = Path(__file__).parent.parent.parent / ".ai_cache" / "rate_limit.json"
+MAX_CALLS_PER_DAY = settings.max_gemini_calls_per_day  # Increased to support more API calls while staying well below Gemini's 1500/day limit
+RATE_LIMIT_PATH = settings.rate_limit_path
 
 def _get_todays_call_count() -> int:
     """Get number of API calls made today (UTC timezone)."""
@@ -126,8 +123,8 @@ def _call_gemini_with_retry(model, prompt: str, max_retries: int = 4) -> Optiona
             response = model.generate_content(
                 prompt,
                 generation_config=gemini.types.GenerationConfig(
-                    max_output_tokens=1500,
-                    temperature=0.7,
+                    max_output_tokens=settings.gemini_max_output_tokens,
+                    temperature=settings.gemini_temperature,
                 )
             )
             return response.text.strip()
@@ -164,7 +161,7 @@ class AbsolemReflector:
         Initialize the reflector with optional API key.
         Falls back gracefully if API key not provided.
         """
-        self.api_key = api_key or os.getenv("GOOGLE_GEMINI_API_KEY")
+        self.api_key = api_key or settings.google_gemini_api_key
         self.gemini_available = False
         self.usage_stats = {"total_calls": 0, "failed_calls": 0, "cached_calls": 0}
 
@@ -173,7 +170,7 @@ class AbsolemReflector:
         if self.api_key and gemini:
             try:
                 gemini.configure(api_key=self.api_key)
-                self.model = gemini.GenerativeModel("gemini-2.5-flash")
+                self.model = gemini.GenerativeModel(settings.gemini_model)
                 self.gemini_available = True
                 logger.info("✨ Gemini API initialized successfully")
             except Exception as e:

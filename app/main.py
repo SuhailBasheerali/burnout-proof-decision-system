@@ -1,12 +1,9 @@
 import logging
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from app.api.routes import decision, health, monitoring, reflection
-
-# Load environment variables from .env file
-load_dotenv()
+from app.config import settings
 
 # Configure logging to display INFO level messages
 logging.basicConfig(
@@ -16,7 +13,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-app = FastAPI(title="Burnout-Proof Decision Engine")
+app = FastAPI(title=settings.app_title)
 
 
 app.include_router(health.router)
