@@ -1,0 +1,29 @@
+# Core Backend
+fastapi
+uvicorn
+pydantic
+python-dotenv
+
+# AI (Optional)
+google-generativeai
+
+# Frontend
+streamlit
+plotly
+pandas
+numpy
+matplotlib
+
+# HTTP & Requests
+requests
+httpx
+
+# Testing
+pytest
+
+# Development
+ipykernel
+ipython
+jupyter_client
+jupyter_core
+debugpy
