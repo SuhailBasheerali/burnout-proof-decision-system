@@ -15,13 +15,25 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from pathlib import Path
 
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-
 logger = logging.getLogger(__name__)
+
+genai = None
+
+
+def _load_gemini():
+    """Load Gemini only when the optional reflection layer needs it."""
+    global genai
+    if genai is not None:
+        return genai
+
+    try:
+        import google.generativeai as gemini
+    except Exception as e:
+        logger.warning(f"Gemini package unavailable: {e}. Using fallback wisdom.")
+        return None
+
+    genai = gemini
+    return genai
 
 # Default Absolem wisdom - used as fallback
 ABSOLEM_FALLBACK_WISDOM = {
@@ -105,11 +117,15 @@ def _call_gemini_with_retry(model, prompt: str, max_retries: int = 4) -> Optiona
     
     Returns the response text or None if failed after retries.
     """
+    gemini = _load_gemini()
+    if gemini is None:
+        return None
+
     for attempt in range(max_retries + 1):
         try:
             response = model.generate_content(
                 prompt,
-                generation_config=genai.types.GenerationConfig(
+                generation_config=gemini.types.GenerationConfig(
                     max_output_tokens=1500,
                     temperature=0.7,
                 )
@@ -151,11 +167,13 @@ class AbsolemReflector:
         self.api_key = api_key or os.getenv("GOOGLE_GEMINI_API_KEY")
         self.gemini_available = False
         self.usage_stats = {"total_calls": 0, "failed_calls": 0, "cached_calls": 0}
-        
-        if self.api_key and GEMINI_AVAILABLE:
+
+        gemini = _load_gemini() if self.api_key else None
+
+        if self.api_key and gemini:
             try:
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-2.5-flash")
+                gemini.configure(api_key=self.api_key)
+                self.model = gemini.GenerativeModel("gemini-2.5-flash")
                 self.gemini_available = True
                 logger.info("✨ Gemini API initialized successfully")
             except Exception as e:
