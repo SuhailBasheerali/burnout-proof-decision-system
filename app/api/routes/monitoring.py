@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.schemas import RateLimitResponse, ReflectionStatsResponse
 from app.services.reflection_service import (
     get_ai_reflection_stats,
     get_daily_rate_limits,
@@ -8,7 +9,13 @@ from app.services.reflection_service import (
 router = APIRouter()
 
 
-@router.get("/stats")
+@router.get(
+    "/stats",
+    response_model=ReflectionStatsResponse,
+    tags=["Monitoring"],
+    summary="Reflection usage stats",
+    description="Returns runtime counters for the optional reflection layer, including cache usage and fallback availability.",
+)
 def get_stats():
     """
     Get usage statistics for the AI reflection layer.
@@ -17,7 +24,13 @@ def get_stats():
     return get_ai_reflection_stats()
 
 
-@router.get("/api/rate-limits")
+@router.get(
+    "/api/rate-limits",
+    response_model=RateLimitResponse,
+    tags=["Monitoring"],
+    summary="Gemini rate-limit status",
+    description="Returns the current daily Gemini usage window, remaining calls, reset time, and availability state.",
+)
 def get_rate_limits():
     """
     Get daily API call rate limit information.

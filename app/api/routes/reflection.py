@@ -6,7 +6,17 @@ from app.services.reflection_service import create_reflection
 router = APIRouter()
 
 
-@router.post("/decision/reflect", response_model=ReflectionResponse)
+@router.post(
+    "/decision/reflect",
+    response_model=ReflectionResponse,
+    tags=["Reflection"],
+    summary="Generate reflective guidance",
+    description=(
+        "Uses the optional Absolem reflection layer to add qualitative burnout-prevention guidance "
+        "to a previously computed comparison result. If Gemini is unavailable, a built-in fallback is used."
+    ),
+    response_description="Reflective advice, an action plan, and the source used to generate the response.",
+)
 def reflect(request: ReflectionRequest):
     """
     Get Absolem's philosophical wisdom on the decision.
